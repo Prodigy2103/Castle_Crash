@@ -22,7 +22,10 @@
 
 ## 5. Workflow Trigger: "Für heute Feierabend"
 When the user writes **"Für heute Feierabend"**:
-1. **Aggregate Today's Progress:** Summarize all newly created or modified classes, functions, connections (imports, inheritance, data flow), and key learnings from the current session.
-2. **Update `learning.html`:** Create `learning.html` in the project root (if missing) or prepend/append a dated entry (`YYYY-MM-DD`) in clean, readable HTML/CSS documenting the functions, class connections, and takeaways.
+1. **Aggregate Today's Progress:** Summarize all newly created or modified classes, functions/methods (with parameters and properties), and connections (imports, inheritance, call/data flow) from the current session.
+2. **Update `learning.html`:** Create `learning.html` in the project root (if missing) or prepend/append a dated entry (`YYYY-MM-DD`) in clean, readable HTML/CSS containing:
+   - A connection and data-flow diagram (`index.html` → entry point → classes, `extends`, `import`, method calls).
+   - Detailed cards for every newly created or modified module/class (file path, `extends`/`import` tags, properties, all functions/methods with parameters).
+   - Key takeaways and open review checkpoints.
 3. **GitHub Sync:** Stage, commit, and push all changes (`git add .`, `git commit -m "chore: end of day learning log YYYY-MM-DD"`, `git push`). If no Git remote is configured yet, ask the user for the GitHub repository URL before pushing.
 
