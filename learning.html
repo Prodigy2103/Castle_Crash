@@ -8,6 +8,7 @@
         :root {
             --bg-root: #0f172a;
             --surface-card: #1e293b;
+            --surface-box: #162033;
             --surface-code: #0b1120;
             --border-subtle: #334155;
             --text-primary: #f1f5f9;
@@ -15,16 +16,17 @@
             --accent: #38bdf8;
             --accent-soft: rgba(56, 189, 248, 0.14);
             --ok: #34d399;
+            --warn: #fbbf24;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
             font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
             background: var(--bg-root);
             color: var(--text-primary);
-            line-height: 1.6;
+            line-height: 1.55;
             padding: 32px 16px;
         }
-        main { max-width: 980px; margin: 0 auto; display: grid; gap: 24px; }
+        main { max-width: 1120px; margin: 0 auto; display: grid; gap: 24px; }
         header h1 { font-size: 1.9rem; color: var(--accent); }
         header p { color: var(--text-muted); margin-top: 4px; }
         .entry {
@@ -33,7 +35,7 @@
             border-radius: 12px;
             padding: 24px;
             display: grid;
-            gap: 20px;
+            gap: 24px;
         }
         .entry-header {
             display: flex;
@@ -52,93 +54,271 @@
             padding: 4px 10px;
             border-radius: 999px;
         }
-        h2 { font-size: 1.3rem; }
-        h3 { font-size: 1.05rem; color: var(--accent); margin-bottom: 8px; }
-        ul { padding-left: 20px; display: grid; gap: 6px; }
+        h2 { font-size: 1.35rem; }
+        h3 { font-size: 1.05rem; color: var(--accent); margin-bottom: 10px; }
+        h4 { font-size: 0.95rem; color: var(--warn); margin: 10px 0 6px; }
+        ul { padding-left: 18px; display: grid; gap: 6px; }
         code {
             background: var(--surface-code);
             padding: 2px 6px;
             border-radius: 5px;
             font-family: Consolas, Monaco, monospace;
-            font-size: 0.9em;
+            font-size: 0.86em;
             color: #e2e8f0;
         }
         .flow {
             background: var(--surface-code);
             border: 1px solid var(--border-subtle);
             border-radius: 8px;
-            padding: 14px;
+            padding: 16px;
             font-family: Consolas, Monaco, monospace;
-            font-size: 0.9rem;
+            font-size: 0.86rem;
             overflow-x: auto;
+            white-space: pre;
             color: var(--ok);
         }
-        .grid-2 {
+        .cards {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(310px, 1fr));
             gap: 16px;
         }
-        .box {
-            background: rgba(15, 23, 42, 0.55);
+        .card {
+            background: var(--surface-box);
             border: 1px solid var(--border-subtle);
-            border-radius: 8px;
-            padding: 14px;
+            border-radius: 10px;
+            padding: 16px;
+            display: grid;
+            gap: 8px;
+            align-content: start;
         }
+        .card-title {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            gap: 8px;
+            border-bottom: 1px solid var(--border-subtle);
+            padding-bottom: 8px;
+        }
+        .card-title strong { font-size: 1.05rem; color: var(--accent); }
+        .file-path { font-size: 0.8rem; color: var(--text-muted); }
+        .tag-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+        .tag {
+            font-size: 0.78rem;
+            padding: 2px 8px;
+            border-radius: 6px;
+            background: var(--surface-code);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-muted);
+        }
+        .tag.extends { color: var(--ok); border-color: rgba(52, 211, 153, 0.35); }
+        .tag.imports { color: var(--warn); border-color: rgba(251, 191, 36, 0.35); }
     </style>
 </head>
 <body>
 <main>
     <header>
         <h1>Castle Crash – Learning Log</h1>
-        <p>Tagesaktuelle Dokumentation zu Klassen, Funktionen, Verbindungen und Architektur-Erkenntnissen.</p>
+        <p>Vollständige Übersicht aller erstellten Klassen, Funktionen/Methoden und deren Verbindungen untereinander.</p>
     </header>
 
     <article class="entry" id="entry-2026-11-23">
         <div class="entry-header">
-            <h2>2026-11-23 – Canvas-Grundgerüst, Asset-Pipeline &amp; animierte Charaktere</h2>
+            <h2>2026-11-23 – Klassen, Funktionen &amp; Modul-Verbindungen</h2>
             <span class="badge">2026-11-23</span>
         </div>
 
         <section>
-            <h3>1. Architektur-Verbindungen (Imports &amp; Vererbung)</h3>
-            <div class="flow">index.html (&lt;script type="module" src="./js/game.js"&gt;)
-  └─&gt; js/game.js : initGame()
-        ├─&gt; models/level.class.js : Level.createBackgrounds() ──&gt; Background
-        └─&gt; models/world.class.js : World.draw()
-              ├─&gt; addObjectsToMap(level.backgroundObjects)
-              └─&gt; addObjectsToMap(characters)
+            <h3>1. Verbindungen &amp; Datenfluss zwischen den Dateien</h3>
+            <div class="flow">index.html (&lt;canvas id="canvas" width="1280" height="640"&gt; + &lt;script type="module" src="./js/game.js"&gt;)
+  │
+  ▼
+js/game.js :: initGame()
+  ├──► Level.createBackgrounds()        [models/level.class.js]
+  │      ├── liest ImgHelper.background.areas  [js/imghelper.js]
+  │      └── erstellt 6x new Background(...)    [models/background.class.js]
+  │
+  └──► new World(canvas, level)         [models/world.class.js]
+         ├── erstellt 3x new Character("c1".."c3", x, y)  [models/character.class.js]
+         │      ├── liest ImgHelper.characters[characterKey].idle
+         │      ├── ruft loadImage() &amp; loadImages()        [DrawableObject]
+         │      └── animate() ─► IntervalHub.startInterval() ─► playAnimation() [MoveableObject]
+         │
+         └── draw() (requestAnimationFrame-Loop)
+                ├── addObjectsToMap(level.backgroundObjects) ─► Background.draw(context)
+                └── addObjectsToMap(characters)              ─► Character.draw(context)
 
-Vererbungskette:
-DrawableObject ──&gt; MoveableObject ──&gt; Background
-                                  └──&gt; Character (+ ImgHelper + IntervalHub)</div>
+Vererbung (extends):
+DrawableObject  ◄──  MoveableObject  ◄──  Background
+                                     ◄──  Character</div>
         </section>
 
-        <section class="grid-2">
-            <div class="box">
-                <h3>2. Klassen &amp; Funktionen heute</h3>
-                <ul>
-                    <li><code>index.html</code> &amp; <code>style.css</code>: Canvas auf <code>1280 × 640</code> (2:1 passend zu <code>2143 × 1062</code> Area-Assets) vergrößert und per <code>100dvh</code>-Flexbox zentriert.</li>
-                    <li><code>DrawableObject</code> (<code>models/drawable_object.class.js</code>): <code>loadImage(imagePath)</code> für Einzelbilder, <code>loadImages(imagePaths)</code> für den <code>imageCache</code>, <code>draw(context)</code> mit <code>img.complete</code>-Check.</li>
-                    <li><code>MoveableObject</code> (<code>models/moveable_object.class.js</code>): <code>playAnimation(images)</code> schaltet Frames per Modulo (<code>currentImage % images.length</code>) endlos durch.</li>
-                    <li><code>Background</code> (<code>models/background.class.js</code>): Kachelt Level-Hintergründe mit <code>1280 × 640</code> an <code>offsetX</code>.</li>
-                    <li><code>Level</code> (<code>models/level.class.js</code>): <code>createBackgrounds()</code> erzeugt 6 gekachelte <code>Background</code>-Objekte (Abstand <code>1279</code> px).</li>
-                    <li><code>ImgHelper</code> (<code>js/imghelper.js</code>): Stellt alle <strong>2.770 PNG-Pfade</strong> aus <code>assets/Png/</code> über <code>buildFrames</code>, <code>buildCharacterMap</code>, <code>buildRegularEnemyMap</code>, <code>buildBossEnemyMap</code> und <code>buildUiMap</code> bereit.</li>
-                    <li><code>IntervalHub</code> (<code>js/intervalhub.class.js</code>): Zentrales Intervall-Management (<code>startInterval</code>, <code>stopInterval</code>, <code>stopAllIntervals</code>).</li>
-                    <li><code>Character</code> (<code>models/character.class.js</code>): Parametrisierbar über <code>characterKey</code> (<code>c1</code>–<code>c15</code>) sowie <code>offsetX</code> / <code>offsetY</code>, startet Idle-Animation über <code>IntervalHub</code>.</li>
-                    <li><code>World</code> (<code>models/world.class.js</code>): Rendert <code>level.backgroundObjects</code> und <code>characters</code> im <code>requestAnimationFrame</code>-Loop via <code>addObjectsToMap</code>.</li>
-                </ul>
-            </div>
+        <section>
+            <h3>2. Alle Klassen &amp; Funktionen im Detail</h3>
+            <div class="cards">
 
-            <div class="box">
-                <h3>3. Wichtigste Lernpunkte (Aha-Momente)</h3>
-                <ul>
-                    <li><strong>ES-Module im Browser:</strong> Mit <code>type="module"</code> reicht <code>js/game.js</code> in <code>index.html</code> – alle weiteren Klassen werden über <code>import</code> nachgeladen (benötigt lokalen Server wie Live Server).</li>
-                    <li><strong><code>loadImage</code> vs. <code>loadImages</code>:</strong> Beide werden gebraucht – <code>loadImage</code> für statische Bilder/Startbilder in <code>this.img</code>, <code>loadImages</code> zum Vorladen ganzer Animationsserien in <code>this.imageCache</code>.</li>
-                    <li><strong>Keine 15 Charakter-Dateien (DRY):</strong> Eine einzige <code>Character</code>-Klasse reicht für <code>c1</code> bis <code>c15</code>, solange <code>characterKey</code> und Position per Konstruktor übergeben werden.</li>
-                    <li><strong>Painter's Algorithm:</strong> Im Canvas übermalt später Gezeichnetes frühere Ebenen – daher immer erst <code>backgroundObjects</code>, dann <code>characters</code> zeichnen.</li>
-                    <li><strong>Offene Checkpoints aus dem Review:</strong> <code>addObjectsToMap</code> sollte künftig <code>this.addToMap(...)</code> nutzen (für späteres Spiegeln) und <code>Character</code> braucht bei ungültigem <code>characterKey</code> einen klaren Fehler statt stillem Crash.</li>
-                </ul>
+                <div class="card">
+                    <div class="card-title">
+                        <strong>initGame()</strong>
+                        <span class="file-path">js/game.js</span>
+                    </div>
+                    <div class="tag-row">
+                        <span class="tag imports">import: Level, World</span>
+                    </div>
+                    <h4>Funktion</h4>
+                    <ul>
+                        <li><code>initGame()</code>: Holt <code>#canvas</code> aus dem DOM, prüft <code>HTMLCanvasElement</code>, erstellt <code>new Level(Level.createBackgrounds())</code> und startet <code>new World(canvas, level)</code>.</li>
+                        <li>Wird über <code>window.addEventListener("DOMContentLoaded", initGame)</code> ausgelöst.</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">
+                        <strong>DrawableObject</strong>
+                        <span class="file-path">models/drawable_object.class.js</span>
+                    </div>
+                    <div class="tag-row">
+                        <span class="tag">Basisklasse</span>
+                    </div>
+                    <h4>Properties</h4>
+                    <ul>
+                        <li><code>img</code>, <code>x = 0</code>, <code>y = 0</code>, <code>width = 100</code>, <code>height = 100</code>, <code>imageCache = {}</code>, <code>currentImage = 0</code></li>
+                    </ul>
+                    <h4>Methoden</h4>
+                    <ul>
+                        <li><code>loadImage(imagePath)</code>: Lädt ein einzelnes <code>Image</code> direkt in <code>this.img</code>.</li>
+                        <li><code>loadImages(imagePaths)</code>: Lädt ein Array von Pfaden vorab in <code>this.imageCache[imagePath]</code>.</li>
+                        <li><code>draw(context)</code>: Prüft <code>this.img &amp;&amp; this.img.complete</code> und zeichnet via <code>context.drawImage(...)</code>.</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">
+                        <strong>MoveableObject</strong>
+                        <span class="file-path">models/moveable_object.class.js</span>
+                    </div>
+                    <div class="tag-row">
+                        <span class="tag extends">extends DrawableObject</span>
+                    </div>
+                    <h4>Methoden</h4>
+                    <ul>
+                        <li><code>playAnimation(images)</code>: Berechnet <code>currentImage % images.length</code>, setzt <code>this.img</code> aus <code>this.imageCache</code> und erhöht <code>currentImage</code>.</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">
+                        <strong>Background</strong>
+                        <span class="file-path">models/background.class.js</span>
+                    </div>
+                    <div class="tag-row">
+                        <span class="tag extends">extends MoveableObject</span>
+                    </div>
+                    <h4>Properties &amp; Konstruktor</h4>
+                    <ul>
+                        <li><code>width = 1280</code>, <code>height = 640</code></li>
+                        <li><code>constructor(imagePath, offsetX)</code>: Ruft <code>super()</code> und <code>this.loadImage(imagePath)</code> auf, setzt <code>this.x = offsetX</code> und <code>this.y = 640 - this.height</code>.</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">
+                        <strong>Level</strong>
+                        <span class="file-path">models/level.class.js</span>
+                    </div>
+                    <div class="tag-row">
+                        <span class="tag imports">import: Background, ImgHelper</span>
+                    </div>
+                    <h4>Methoden</h4>
+                    <ul>
+                        <li><code>constructor(backgroundObjects)</code>: Speichert die Hintergrund-Kacheln in <code>this.backgroundObjects</code>.</li>
+                        <li><code>static createBackgrounds()</code>: Erzeugt 6 <code>Background</code>-Instanzen im Abstand <code>1279</code> px aus <code>ImgHelper.background.areas</code>.</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">
+                        <strong>Character</strong>
+                        <span class="file-path">models/character.class.js</span>
+                    </div>
+                    <div class="tag-row">
+                        <span class="tag extends">extends MoveableObject</span>
+                        <span class="tag imports">import: ImgHelper, IntervalHub</span>
+                    </div>
+                    <h4>Properties &amp; Methoden</h4>
+                    <ul>
+                        <li><code>width = 120</code>, <code>height = 120</code>, <code>x</code>, <code>y</code>, <code>characterKey</code></li>
+                        <li><code>constructor(characterKey = "c1", offsetX = 120, offsetY = 260)</code>: Lädt Startbild + alle Idle-Frames über <code>loadImage</code> / <code>loadImages</code> und startet <code>animate()</code>.</li>
+                        <li><code>animate()</code>: Registriert einen 50-ms-Loop über <code>IntervalHub.startInterval</code> für <code>this.playAnimation(idleFrames)</code>.</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">
+                        <strong>World</strong>
+                        <span class="file-path">models/world.class.js</span>
+                    </div>
+                    <div class="tag-row">
+                        <span class="tag imports">import: Character</span>
+                    </div>
+                    <h4>Properties &amp; Methoden</h4>
+                    <ul>
+                        <li><code>characters</code> (Array mit <code>c1</code>, <code>c2</code>, <code>c3</code>), <code>canvas</code>, <code>context</code>, <code>level</code></li>
+                        <li><code>constructor(canvas, level)</code>: Holt 2D-Kontext und startet <code>this.draw()</code>.</li>
+                        <li><code>draw()</code>: Leert Canvas, zeichnet erst <code>level.backgroundObjects</code>, dann <code>characters</code> und plant nächsten Frame per <code>requestAnimationFrame</code>.</li>
+                        <li><code>addObjectsToMap(objects)</code>: Ruft für jedes Element <code>drawableObject.draw(this.context)</code> auf.</li>
+                        <li><code>addToMap(drawableObject)</code>: Zeichnet ein einzelnes Objekt (aktuell ungenutzt, vorbereitet für Spiegeln).</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">
+                        <strong>IntervalHub</strong>
+                        <span class="file-path">js/intervalhub.class.js</span>
+                    </div>
+                    <div class="tag-row">
+                        <span class="tag">Statischer Timer-Hub</span>
+                    </div>
+                    <h4>Properties &amp; Methoden</h4>
+                    <ul>
+                        <li><code>static allIntervals = []</code>: Speichert alle aktiven Interval-IDs.</li>
+                        <li><code>static startInterval(func, timer)</code>: Startet <code>setInterval</code> und merkt sich die ID.</li>
+                        <li><code>static stopInterval(intervalId)</code>: Stoppt ein einzelnes Intervall und entfernt es aus <code>allIntervals</code>.</li>
+                        <li><code>static stopAllIntervals()</code>: Stoppt alle registrierten Intervalle auf einmal.</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">
+                        <strong>ImgHelper</strong>
+                        <span class="file-path">js/imghelper.js</span>
+                    </div>
+                    <div class="tag-row">
+                        <span class="tag">Asset-Registry (2.770 PNGs)</span>
+                    </div>
+                    <h4>Interne Helper-Funktionen</h4>
+                    <ul>
+                        <li><code>buildFrames(prefix, frameCount)</code>: Generiert nummerierte Frame-Pfade (<code>_00.png</code> …).</li>
+                        <li><code>buildCharacterMap()</code>: Baut <code>c1</code>–<code>c15</code> (<code>idle</code>, <code>shoot</code>).</li>
+                        <li><code>buildRegularEnemyMap()</code>: Baut <code>reg1</code>–<code>reg8</code> (<code>attack</code>, <code>dead</code>, <code>idle</code>, <code>walk</code>).</li>
+                        <li><code>buildBossEnemyMap()</code>: Baut <code>boss1</code>–<code>boss7</code> anhand von <code>BOSS_FRAME_COUNTS</code>.</li>
+                        <li><code>buildUiMap()</code>: Mapped alle 104 <code>Ui/*.png</code> auf saubere Keys.</li>
+                    </ul>
+                    <h4>Statische Kategorien</h4>
+                    <ul>
+                        <li><code>background.areas</code>, <code>bullets</code>, <code>catGuardian</code>, <code>catBoxing</code>, <code>characters</code>, <code>enemies</code>, <code>fx</code>, <code>ui</code></li>
+                    </ul>
+                </div>
+
             </div>
+        </section>
+
+        <section class="box">
+            <h3>4. Wichtigste Lernpunkte &amp; offene Review-Hinweise</h3>
+            <ul>
+                <li><strong>ES-Module:</strong> Über <code>type="module"</code> in <code>index.html</code> lädt <code>js/game.js</code> alle verknüpften Klassen automatisch per <code>import</code> nach (benötigt lokalen Webserver).</li>
+                <li><strong>DRY statt 15 Dateien:</strong> Eine einzige <code>Character</code>-Klasse deckt <code>c1</code>–<code>c15</code> über den Parameter <code>characterKey</code> ab.</li>
+                <li><strong>Offen für den nächsten Schritt:</strong> <code>addObjectsToMap</code> sollte <code>this.addToMap(...)</code> aufrufen (sonst greift späteres Spiegeln nicht), und <code>Character</code> sollte bei ungültigem <code>characterKey</code> einen klaren Fehler werfen.</li>
+            </ul>
         </section>
     </article>
 </main>
