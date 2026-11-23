@@ -19,3 +19,10 @@
 
 ## 4. Workspace & Script Hygiene
 - Keep the project structure clean and avoid leaving temporary test or scratch scripts behind after experiments.
+
+## 5. Workflow Trigger: "Für heute Feierabend"
+When the user writes **"Für heute Feierabend"**:
+1. **Aggregate Today's Progress:** Summarize all newly created or modified classes, functions, connections (imports, inheritance, data flow), and key learnings from the current session.
+2. **Update `learning.html`:** Create `learning.html` in the project root (if missing) or prepend/append a dated entry (`YYYY-MM-DD`) in clean, readable HTML/CSS documenting the functions, class connections, and takeaways.
+3. **GitHub Sync:** Stage, commit, and push all changes (`git add .`, `git commit -m "chore: end of day learning log YYYY-MM-DD"`, `git push`). If no Git remote is configured yet, ask the user for the GitHub repository URL before pushing.
+

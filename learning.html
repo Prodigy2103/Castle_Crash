@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Castle Crash – Learning Log</title>
+    <style>
+        :root {
+            --bg-root: #0f172a;
+            --surface-card: #1e293b;
+            --surface-code: #0b1120;
+            --border-subtle: #334155;
+            --text-primary: #f1f5f9;
+            --text-muted: #94a3b8;
+            --accent: #38bdf8;
+            --accent-soft: rgba(56, 189, 248, 0.14);
+            --ok: #34d399;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+            background: var(--bg-root);
+            color: var(--text-primary);
+            line-height: 1.6;
+            padding: 32px 16px;
+        }
+        main { max-width: 980px; margin: 0 auto; display: grid; gap: 24px; }
+        header h1 { font-size: 1.9rem; color: var(--accent); }
+        header p { color: var(--text-muted); margin-top: 4px; }
+        .entry {
+            background: var(--surface-card);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            padding: 24px;
+            display: grid;
+            gap: 20px;
+        }
+        .entry-header {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+            border-bottom: 1px solid var(--border-subtle);
+            padding-bottom: 12px;
+        }
+        .badge {
+            background: var(--accent-soft);
+            color: var(--accent);
+            font-size: 0.85rem;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 999px;
+        }
+        h2 { font-size: 1.3rem; }
+        h3 { font-size: 1.05rem; color: var(--accent); margin-bottom: 8px; }
+        ul { padding-left: 20px; display: grid; gap: 6px; }
+        code {
+            background: var(--surface-code);
+            padding: 2px 6px;
+            border-radius: 5px;
+            font-family: Consolas, Monaco, monospace;
+            font-size: 0.9em;
+            color: #e2e8f0;
+        }
+        .flow {
+            background: var(--surface-code);
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            padding: 14px;
+            font-family: Consolas, Monaco, monospace;
+            font-size: 0.9rem;
+            overflow-x: auto;
+            color: var(--ok);
+        }
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 16px;
+        }
+        .box {
+            background: rgba(15, 23, 42, 0.55);
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            padding: 14px;
+        }
+    </style>
+</head>
+<body>
+<main>
+    <header>
+        <h1>Castle Crash – Learning Log</h1>
+        <p>Tagesaktuelle Dokumentation zu Klassen, Funktionen, Verbindungen und Architektur-Erkenntnissen.</p>
+    </header>
+
+    <article class="entry" id="entry-2026-11-23">
+        <div class="entry-header">
+            <h2>2026-11-23 – Canvas-Grundgerüst, Asset-Pipeline &amp; animierte Charaktere</h2>
+            <span class="badge">2026-11-23</span>
+        </div>
+
+        <section>
+            <h3>1. Architektur-Verbindungen (Imports &amp; Vererbung)</h3>
+            <div class="flow">index.html (&lt;script type="module" src="./js/game.js"&gt;)
+  └─&gt; js/game.js : initGame()
+        ├─&gt; models/level.class.js : Level.createBackgrounds() ──&gt; Background
+        └─&gt; models/world.class.js : World.draw()
+              ├─&gt; addObjectsToMap(level.backgroundObjects)
+              └─&gt; addObjectsToMap(characters)
+
+Vererbungskette:
+DrawableObject ──&gt; MoveableObject ──&gt; Background
+                                  └──&gt; Character (+ ImgHelper + IntervalHub)</div>
+        </section>
+
+        <section class="grid-2">
+            <div class="box">
+                <h3>2. Klassen &amp; Funktionen heute</h3>
+                <ul>
+                    <li><code>index.html</code> &amp; <code>style.css</code>: Canvas auf <code>1280 × 640</code> (2:1 passend zu <code>2143 × 1062</code> Area-Assets) vergrößert und per <code>100dvh</code>-Flexbox zentriert.</li>
+                    <li><code>DrawableObject</code> (<code>models/drawable_object.class.js</code>): <code>loadImage(imagePath)</code> für Einzelbilder, <code>loadImages(imagePaths)</code> für den <code>imageCache</code>, <code>draw(context)</code> mit <code>img.complete</code>-Check.</li>
+                    <li><code>MoveableObject</code> (<code>models/moveable_object.class.js</code>): <code>playAnimation(images)</code> schaltet Frames per Modulo (<code>currentImage % images.length</code>) endlos durch.</li>
+                    <li><code>Background</code> (<code>models/background.class.js</code>): Kachelt Level-Hintergründe mit <code>1280 × 640</code> an <code>offsetX</code>.</li>
+                    <li><code>Level</code> (<code>models/level.class.js</code>): <code>createBackgrounds()</code> erzeugt 6 gekachelte <code>Background</code>-Objekte (Abstand <code>1279</code> px).</li>
+                    <li><code>ImgHelper</code> (<code>js/imghelper.js</code>): Stellt alle <strong>2.770 PNG-Pfade</strong> aus <code>assets/Png/</code> über <code>buildFrames</code>, <code>buildCharacterMap</code>, <code>buildRegularEnemyMap</code>, <code>buildBossEnemyMap</code> und <code>buildUiMap</code> bereit.</li>
+                    <li><code>IntervalHub</code> (<code>js/intervalhub.class.js</code>): Zentrales Intervall-Management (<code>startInterval</code>, <code>stopInterval</code>, <code>stopAllIntervals</code>).</li>
+                    <li><code>Character</code> (<code>models/character.class.js</code>): Parametrisierbar über <code>characterKey</code> (<code>c1</code>–<code>c15</code>) sowie <code>offsetX</code> / <code>offsetY</code>, startet Idle-Animation über <code>IntervalHub</code>.</li>
+                    <li><code>World</code> (<code>models/world.class.js</code>): Rendert <code>level.backgroundObjects</code> und <code>characters</code> im <code>requestAnimationFrame</code>-Loop via <code>addObjectsToMap</code>.</li>
+                </ul>
+            </div>
+
+            <div class="box">
+                <h3>3. Wichtigste Lernpunkte (Aha-Momente)</h3>
+                <ul>
+                    <li><strong>ES-Module im Browser:</strong> Mit <code>type="module"</code> reicht <code>js/game.js</code> in <code>index.html</code> – alle weiteren Klassen werden über <code>import</code> nachgeladen (benötigt lokalen Server wie Live Server).</li>
+                    <li><strong><code>loadImage</code> vs. <code>loadImages</code>:</strong> Beide werden gebraucht – <code>loadImage</code> für statische Bilder/Startbilder in <code>this.img</code>, <code>loadImages</code> zum Vorladen ganzer Animationsserien in <code>this.imageCache</code>.</li>
+                    <li><strong>Keine 15 Charakter-Dateien (DRY):</strong> Eine einzige <code>Character</code>-Klasse reicht für <code>c1</code> bis <code>c15</code>, solange <code>characterKey</code> und Position per Konstruktor übergeben werden.</li>
+                    <li><strong>Painter's Algorithm:</strong> Im Canvas übermalt später Gezeichnetes frühere Ebenen – daher immer erst <code>backgroundObjects</code>, dann <code>characters</code> zeichnen.</li>
+                    <li><strong>Offene Checkpoints aus dem Review:</strong> <code>addObjectsToMap</code> sollte künftig <code>this.addToMap(...)</code> nutzen (für späteres Spiegeln) und <code>Character</code> braucht bei ungültigem <code>characterKey</code> einen klaren Fehler statt stillem Crash.</li>
+                </ul>
+            </div>
+        </section>
+    </article>
+</main>
+</body>
+</html>
