@@ -308,6 +308,7 @@ MoveableObject  ◄──  Enemy
                 <li><strong>Fußlinie statt Oberkante:</strong> Bei unterschiedlich großen Sprites (<code>Character = 120 px</code> vs. <code>Enemy = 210 px</code>) bestimmt <code>y + height</code>, auf welcher Fahrspur sie stehen.</li>
                 <li><strong>Cooldown gegen Dauerfeuer:</strong> Ein <code>Date.now()</code>-Vergleich verhindert 60 Schüsse pro Sekunde bei gedrückter Taste.</li>
                 <li><strong>Timer-Leaks vermeiden:</strong> Jedes entfernte Projektil muss über <code>destroy()</code> seine <code>IntervalHub</code>-Timer stoppen.</li>
+                <li><strong>Repo-Hygiene (<code>.gitignore</code>):</strong> Roh-Design-Ordner (<code>Ai</code>, <code>Eps</code>, <code>Spine</code>, <code>Json Atlas</code>, <code>Preview</code>, <code>__MACOSX</code>) über <code>.gitignore</code> ausgeschlossen und per <code>git rm -r --cached</code> aus GitHub entfernt, um False-Positive-Secret-Alerts (z. B. in <code>Ui.eps</code>) und unnötige Repo-Größe zu vermeiden.</li>
                 <li><strong>Offen für die nächste Session:</strong> Gegner-Sprites nach links spiegeln (<code>flipImage</code> in <code>World.addToMap</code>), Treffer-/Kollisionsabfrage zwischen Projektilen und Gegnern sowie visueller Rahmen für <code>selectedCharacterIndex</code>.</li>
             </ul>
         </section>
