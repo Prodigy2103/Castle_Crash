@@ -3,14 +3,12 @@ import { Enemy } from "./enemy.class.js";
 import { Effect } from "./effects.class.js";
 import { ImgHelper } from "../js/imghelper.js";
 import { IntervalHub } from "../js/intervalhub.class.js";
+import { Background } from "./background.class.js";
 
 export class World {
+    showHitboxes = true;
     character;
-    enemies = [
-        new Enemy("regular1", 1050, 55, 0.8),
-        new Enemy("regular2", 1200, 155, 0.8),
-        new Enemy("regular3", 1350, 270, 0.8)
-    ];
+    enemies = [];
     projectiles = [];
     effects = [];
     canvas;
@@ -31,6 +29,7 @@ export class World {
         this.keyboard = keyboard;
         this.character = new Character(characterKey, 120, 265);
         this.startInputLoop();
+        this.startEnemySpawner();
         this.draw();
     }
 
@@ -61,6 +60,9 @@ export class World {
      */
     addToMap(drawableObject) {
         drawableObject.draw(this.context);
+        if (this.showHitboxes && !(drawableObject instanceof Background)) {
+            drawableObject.drawFrame(this.context);
+        }
     }
 
     startInputLoop() {
@@ -129,8 +131,32 @@ export class World {
         );
     }
 
+    startEnemySpawner() {
+        IntervalHub.startInterval(() => {
+            if (this.enemies.length < 8) {
+                this.spawnRandomEnemy();
+            }
+        }, 2000);
+    }
+
+    spawnRandomEnemy() {
+        const regularIndex = Math.floor(Math.random() * 8) + 1;
+        const enemyKey = `regular${regularIndex}`;
+        const randomY = 55 + Math.random() * 215;
+        const randomSpeed = 0.7 + Math.random() * 0.7;
+        this.enemies.push(
+            new Enemy(enemyKey, this.canvas.width, randomY, randomSpeed)
+        );
+    }
+
     cleanupEnemies() {
-        this.enemies = this.enemies.filter((enemy) => !enemy.isFinished);
+        this.enemies = this.enemies.filter((enemy) => {
+            const isOutOfBounds = enemy.x + enemy.width < 0;
+            if (isOutOfBounds) {
+                enemy.destroy();
+            }
+            return !enemy.isFinished && !isOutOfBounds;
+        });
     }
 
     cleanupProjectiles() {

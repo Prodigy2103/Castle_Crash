@@ -43,4 +43,25 @@ export class DrawableObject {
         }
         context.drawImage(this.img, this.x, this.y, this.width, this.height);
     }
+
+    /**
+     * Draws outer sprite bounds (blue) and inner hitbox bounds (red).
+     * @param {CanvasRenderingContext2D} context
+     */
+    drawFrame(context) {
+        this.drawRect(context, this.x, this.y, this.width, this.height, "blue");
+        const hitboxX = this.x + this.offset.left;
+        const hitboxY = this.y + this.offset.top;
+        const hitboxWidth = this.width - this.offset.left - this.offset.right;
+        const hitboxHeight = this.height - this.offset.top - this.offset.bottom;
+        this.drawRect(context, hitboxX, hitboxY, hitboxWidth, hitboxHeight, "red");
+    }
+
+    drawRect(context, rectX, rectY, rectWidth, rectHeight, strokeColor) {
+        context.beginPath();
+        context.lineWidth = 2;
+        context.strokeStyle = strokeColor;
+        context.rect(rectX, rectY, rectWidth, rectHeight);
+        context.stroke();
+    }
 }

@@ -248,6 +248,7 @@ DrawableObject (+ offset) ◄── MoveableObject (+ isColliding) ◄── Bac
                     <h4>Neue Properties &amp; Methoden</h4>
                     <ul>
                         <li><code>offset = { top: 0, left: 0, right: 0, bottom: 0 }</code> in <code>DrawableObject</code></li>
+                        <li><code>drawFrame(context)</code> &amp; <code>drawRect(context, rectX, rectY, rectWidth, rectHeight, strokeColor)</code>: Zeichnet den äußeren Sprite-Rahmen (blau) und die echte Hitbox (rot).</li>
                         <li><code>speed = 1</code>, <code>moveLeft()</code>, <code>moveRight()</code>, <code>moveUp()</code>, <code>moveDown()</code></li>
                         <li><code>isColliding(otherObject)</code>: Präzise AABB-Kollisionsprüfung unter Berücksichtigung beider <code>offset</code>-Werte.</li>
                     </ul>
@@ -277,15 +278,17 @@ DrawableObject (+ offset) ◄── MoveableObject (+ isColliding) ◄── Bac
                         <span class="file-path">models/world.class.js</span>
                     </div>
                     <div class="tag-row">
-                        <span class="tag imports">import: Character, Enemy, Effect, ImgHelper, IntervalHub</span>
+                        <span class="tag imports">import: Character, Enemy, Effect, Background, ImgHelper, IntervalHub</span>
                     </div>
                     <h4>Properties &amp; Methoden</h4>
                     <ul>
-                        <li><code>character</code>, <code>enemies</code>, <code>projectiles = []</code>, <code>effects = []</code>, <code>keyboard</code></li>
+                        <li><code>showHitboxes = true</code>, <code>character</code>, <code>enemies = []</code>, <code>projectiles = []</code>, <code>effects = []</code>, <code>keyboard</code></li>
                         <li><code>constructor(canvas, level, keyboard, characterKey = "character1")</code></li>
+                        <li><code>addToMap(drawableObject)</code>: Zeichnet Objekt und (falls <code>showHitboxes</code> &amp; kein <code>Background</code>) <code>drawFrame(context)</code>.</li>
                         <li><code>handleMovementInput()</code>, <code>moveCharacterUp(minRoadY)</code>, <code>moveCharacterDown(maxRoadY)</code></li>
                         <li><code>handleShootingInput()</code>, <code>spawnProjectile(projectile)</code>, <code>checkProjectileHits()</code>, <code>handleHit(projectile, hitEnemy)</code></li>
-                        <li><code>cleanupProjectiles()</code>, <code>cleanupEnemies()</code>, <code>cleanupEffects()</code></li>
+                        <li><code>startEnemySpawner()</code> &amp; <code>spawnRandomEnemy()</code>: Spawnt alle 2 s zufällige Gegner (<code>regular1</code>–<code>regular8</code>, <code>y = 55..270</code>, <code>speed = 0.7..1.4</code>, max. 8).</li>
+                        <li><code>cleanupProjectiles()</code>, <code>cleanupEnemies()</code> (inkl. Rand-Cleanup links), <code>cleanupEffects()</code></li>
                     </ul>
                 </div>
 
