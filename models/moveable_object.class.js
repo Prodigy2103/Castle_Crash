@@ -42,4 +42,18 @@ export class MoveableObject extends DrawableObject {
         this.img = this.imageCache[imagePath];
         this.currentImage++;
     }
+
+    /**
+     * Checks collision using each object's hitbox offsets.
+     * @param {MoveableObject} otherObject
+     * @returns {boolean}
+     */
+    isColliding(otherObject) {
+        return (
+            this.x + this.width - this.offset.right > otherObject.x + otherObject.offset.left &&
+            this.y + this.height - this.offset.bottom > otherObject.y + otherObject.offset.top &&
+            this.x + this.offset.left < otherObject.x + otherObject.width - otherObject.offset.right &&
+            this.y + this.offset.top < otherObject.y + otherObject.height - otherObject.offset.bottom
+        );
+    }
 }

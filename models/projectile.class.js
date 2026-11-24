@@ -3,30 +3,25 @@ import { ImgHelper } from "../js/imghelper.js";
 import { IntervalHub } from "../js/intervalhub.class.js";
 
 export class Projectile extends MoveableObject {
-    width = 80;
-    height = 50;
+    width = 45;
+    height = 34;
     movementIntervalId;
-    animationIntervalId;
+    isHit = false;
+    offset = {
+        top: 10,
+        left: 12,
+        right: 12,
+        bottom: 10
+    };
 
-    /**
-     * @param {number} offsetX
-     * @param {number} offsetY
-     * @param {number} speed
-     */
-    constructor(offsetX, offsetY, speed = 6) {
+
+    constructor(offsetX, offsetY, speed = 8) {
         super();
-        const shootFrames = ImgHelper.effects.shoot;
         this.x = offsetX;
         this.y = offsetY;
         this.speed = speed;
-        this.loadImage(shootFrames[0]);
-        this.loadImages(shootFrames);
-        this.animate();
-    }
-
-    animate() {
+        this.loadImage(ImgHelper.bullets[0]);
         this.startMovement();
-        this.startEffectAnimation();
     }
 
     startMovement() {
@@ -35,16 +30,7 @@ export class Projectile extends MoveableObject {
         }, 1000 / 60);
     }
 
-    startEffectAnimation() {
-        const shootFrames = ImgHelper.effects.shoot;
-        this.animationIntervalId = IntervalHub.startInterval(() => {
-            this.playAnimation(shootFrames);
-        }, 40);
-    }
-
     destroy() {
         IntervalHub.stopInterval(this.movementIntervalId);
-        IntervalHub.stopInterval(this.animationIntervalId);
     }
-
 }

@@ -123,37 +123,60 @@
 
     <article class="entry" id="entry-2026-11-24">
         <div class="entry-header">
-            <h2>2026-11-24 – Gegner, Projektile, Tastatursteuerung &amp; Einzelauswahl</h2>
+            <h2>2026-11-24 – Gegner, Projektile, Effekte, Hitboxen &amp; Einzel-Charakter</h2>
             <span class="badge">2026-11-24</span>
         </div>
 
         <section>
             <h3>1. Verbindungen &amp; Datenfluss zwischen den Dateien</h3>
             <div class="flow">window (keydown / keyup) ──► js/game.js :: updateKeyState(keyboard, event, isPressed)
-  │                              └─ setzt Flags auf Keyboard (SPACE, DIGIT_1..3, UP, DOWN)
+  │                              └─ setzt Flags auf Keyboard (SPACE, UP, DOWN)
   ▼
-new World(canvas, level, keyboard)                [models/world.class.js]
+new World(canvas, level, keyboard, "character1")   [models/world.class.js]
+  ├── character: new Character("character1", 120, 265)
   ├── enemies: 3x new Enemy("regular1".."regular3", x, y, speed)
-  │      └── startMovement() ─► moveLeft() | startWalkAnimation() ─► playAnimation()
+  │      ├── startMovement() ─► moveLeft() | startWalkAnimation() ─► playAnimation()
+  │      └── die() ─► destroy() + playDeadAnimation() ─► isFinished = true
   │
   ├── startInputLoop() (60 FPS via IntervalHub)
-  │      ├── handleMovementInput() ─► moveCharactersUp/Down() ─► character.moveUp() / moveDown()
-  │      └── handleShootingInput()
-  │             ├── Digit1..3 ─► fireCharacter(index) ─► character.shoot(onShoot, 400)
-  │             └── Space     ─► fireAllCharacters()  ─► character.triggerShot(onShoot)
-  │                                                          └─► new Projectile(x + 90, y + 35)
+  │      ├── handleMovementInput() ─► moveCharacterUp/Down() ─► character.moveUp() / moveDown()
+  │      ├── handleShootingInput() ─► Space ─► character.shoot() ─► spawnProjectile()
+  │      │                                         ├─► new Projectile(x + 92, y + 58) [Bullets]
+  │      │                                         └─► new Effect(ImgHelper.effects.shoot) [Muzzle Flash]
+  │      └── checkProjectileHits() ─► projectile.isColliding(enemy) [mit Hitbox-Offset]
+  │                                    └─► handleHit() ─► enemy.die() + new Effect(explosion)
   └── draw() (requestAnimationFrame)
-         ├── cleanupProjectiles() ─► projectile.destroy() (stoppt Intervalle außerhalb Canvas)
-         └── addObjectsToMap(enemies / projectiles)
+         ├── cleanupProjectiles() / cleanupEnemies() / cleanupEffects()
+         └── addToMap(character) + addObjectsToMap(backgroundObjects / enemies / projectiles / effects)
 
 Vererbung (extends):
-MoveableObject  ◄──  Enemy
-                ◄──  Projectile</div>
+DrawableObject (+ offset) ◄── MoveableObject (+ isColliding) ◄── Background / Character / Enemy / Projectile / Effect</div>
         </section>
 
         <section>
             <h3>2. Heute neu erstellte &amp; geänderte Module im Detail</h3>
             <div class="cards">
+
+                <div class="card">
+                    <div class="card-title">
+                        <strong>Effect</strong>
+                        <span class="file-path">models/effects.class.js</span>
+                    </div>
+                    <div class="tag-row">
+                        <span class="tag extends">extends MoveableObject</span>
+                        <span class="tag imports">import: IntervalHub</span>
+                    </div>
+                    <h4>Properties</h4>
+                    <ul>
+                        <li><code>animationIntervalId</code>, <code>isFinished = false</code></li>
+                    </ul>
+                    <h4>Methoden</h4>
+                    <ul>
+                        <li><code>constructor(frames, offsetX, offsetY, width, height, frameMs = 40)</code>: Lädt Frames und startet einmaliges Abspielen.</li>
+                        <li><code>playOnce(frames, frameMs)</code>: Spielt <code>ShootFx</code> oder <code>Explosion</code> exakt einmal ab und ruft am Ende <code>destroy()</code> auf.</li>
+                        <li><code>destroy()</code>: Setzt <code>isFinished = true</code> und stoppt <code>animationIntervalId</code>.</li>
+                    </ul>
+                </div>
 
                 <div class="card">
                     <div class="card-title">
@@ -166,14 +189,14 @@ MoveableObject  ◄──  Enemy
                     </div>
                     <h4>Properties</h4>
                     <ul>
-                        <li><code>width = 200</code>, <code>height = 210</code>, <code>enemyKey</code></li>
+                        <li><code>width = 200</code>, <code>height = 210</code>, <code>enemyKey</code>, <code>isDead = false</code>, <code>isFinished = false</code>, <code>offset = { top: 83, left: 55, right: 67, bottom: 39 }</code></li>
                     </ul>
                     <h4>Methoden</h4>
                     <ul>
-                        <li><code>constructor(enemyKey = "regular1", offsetX = 1280, offsetY = 265, speed = 1)</code>: Prüft <code>ImgHelper.enemies[enemyKey]</code>, lädt <code>walk</code>-Frames und startet <code>animate()</code>.</li>
-                        <li><code>animate()</code>: Startet <code>startMovement()</code> und <code>startWalkAnimation()</code>.</li>
-                        <li><code>startMovement()</code>: Bewegt den Gegner alle <code>1000 / 60</code> ms per <code>moveLeft()</code>.</li>
-                        <li><code>startWalkAnimation()</code>: Spielt die <code>walk</code>-Frames alle <code>50</code> ms ab.</li>
+                        <li><code>constructor(enemyKey = "regular1", offsetX = 1180, offsetY = 265, speed = 1)</code>: Lädt <code>walk</code>- und <code>dead</code>-Frames und startet <code>animate()</code>.</li>
+                        <li><code>animate()</code>, <code>startMovement()</code>, <code>startWalkAnimation()</code>: Laufen &amp; Walk-Animation über <code>IntervalHub</code>.</li>
+                        <li><code>die()</code> &amp; <code>playDeadAnimation()</code>: Stoppt Bewegung, setzt <code>isDead = true</code>, spielt <code>dead</code>-Frames einmalig ab und setzt <code>isFinished = true</code>.</li>
+                        <li><code>destroy()</code>: Stoppt <code>movementIntervalId</code> und <code>animationIntervalId</code>.</li>
                     </ul>
                 </div>
 
@@ -188,68 +211,51 @@ MoveableObject  ◄──  Enemy
                     </div>
                     <h4>Properties</h4>
                     <ul>
-                        <li><code>width = 80</code>, <code>height = 50</code>, <code>movementIntervalId</code>, <code>animationIntervalId</code></li>
+                        <li><code>width = 45</code>, <code>height = 34</code>, <code>movementIntervalId</code>, <code>isHit = false</code>, <code>offset = { top: 10, left: 12, right: 12, bottom: 10 }</code></li>
                     </ul>
                     <h4>Methoden</h4>
                     <ul>
-                        <li><code>constructor(offsetX, offsetY, speed = 6)</code>: Lädt <code>ImgHelper.effects.shoot</code>-Frames und startet <code>animate()</code>.</li>
-                        <li><code>animate()</code>: Ruft <code>startMovement()</code> und <code>startEffectAnimation()</code> auf.</li>
-                        <li><code>startMovement()</code>: Bewegt das Projektil alle <code>1000 / 60</code> ms per <code>moveRight()</code>.</li>
-                        <li><code>startEffectAnimation()</code>: Spielt <code>ShootFx</code> alle <code>40</code> ms über <code>playAnimation(...)</code>.</li>
-                        <li><code>destroy()</code>: Stoppt beide gespeicherten Intervalle per <code>IntervalHub.stopInterval(...)</code>.</li>
+                        <li><code>constructor(offsetX, offsetY, speed = 8)</code>: Lädt <code>ImgHelper.bullets[0]</code> und startet <code>startMovement()</code>.</li>
+                        <li><code>startMovement()</code>: Bewegt die Kugel alle <code>1000 / 60</code> ms per <code>moveRight()</code>.</li>
+                        <li><code>destroy()</code>: Stoppt <code>movementIntervalId</code> per <code>IntervalHub.stopInterval(...)</code>.</li>
                     </ul>
                 </div>
 
                 <div class="card">
                     <div class="card-title">
-                        <strong>Keyboard</strong>
-                        <span class="file-path">models/keyboard.class.js</span>
-                    </div>
-                    <div class="tag-row">
-                        <span class="tag">Eingabe-Zustand</span>
-                    </div>
-                    <h4>Properties</h4>
-                    <ul>
-                        <li><code>SPACE = false</code>, <code>DIGIT_1 = false</code>, <code>DIGIT_2 = false</code>, <code>DIGIT_3 = false</code>, <code>UP = false</code>, <code>DOWN = false</code></li>
-                    </ul>
-                </div>
-
-                <div class="card">
-                    <div class="card-title">
-                        <strong>game.js (Input-Binding)</strong>
-                        <span class="file-path">js/game.js</span>
+                        <strong>Keyboard &amp; game.js</strong>
+                        <span class="file-path">models/keyboard.class.js &amp; js/game.js</span>
                     </div>
                     <div class="tag-row">
                         <span class="tag imports">import: Level, World, Keyboard</span>
                     </div>
-                    <h4>Funktionen &amp; Konstanten</h4>
+                    <h4>Properties &amp; Funktionen</h4>
                     <ul>
-                        <li><code>KEY_MAP</code>: Mapped <code>event.code</code> (<code>Space</code>, <code>Digit1..3</code>, <code>ArrowUp</code>, <code>ArrowDown</code>) auf <code>Keyboard</code>-Keys.</li>
-                        <li><code>updateKeyState(keyboard, event, isPressed)</code>: Ignoriert unbekannte Tasten, verhindert Browser-Scroll bei <code>Space</code>/Pfeilen und setzt den Zustand.</li>
-                        <li><code>bindKeyboardEvents(keyboard)</code>: Registriert <code>keydown</code> und <code>keyup</code> auf <code>window</code>.</li>
-                        <li><code>initGame()</code>: Erzeugt <code>keyboard</code>, bindet Events und übergibt <code>keyboard</code> an <code>new World(canvas, level, keyboard)</code>.</li>
+                        <li><code>Keyboard</code>: <code>SPACE = false</code>, <code>UP = false</code>, <code>DOWN = false</code></li>
+                        <li><code>KEY_MAP</code>: Mapped <code>Space</code>, <code>ArrowUp</code>, <code>ArrowDown</code>.</li>
+                        <li><code>updateKeyState(keyboard, event, isPressed)</code>, <code>bindKeyboardEvents(keyboard)</code>, <code>initGame()</code>: Übergibt <code>keyboard</code> und <code>"character1"</code> an <code>World</code>.</li>
                     </ul>
                 </div>
 
                 <div class="card">
                     <div class="card-title">
-                        <strong>MoveableObject (Erweitert)</strong>
-                        <span class="file-path">models/moveable_object.class.js</span>
+                        <strong>DrawableObject &amp; MoveableObject</strong>
+                        <span class="file-path">models/drawable_object.class.js &amp; moveable_object.class.js</span>
                     </div>
                     <div class="tag-row">
-                        <span class="tag extends">extends DrawableObject</span>
+                        <span class="tag extends">Basisklassen</span>
                     </div>
                     <h4>Neue Properties &amp; Methoden</h4>
                     <ul>
-                        <li><code>speed = 1</code></li>
-                        <li><code>moveLeft()</code> / <code>moveRight()</code>: Verschiebt <code>this.x</code> um <code>this.speed</code>.</li>
-                        <li><code>moveUp()</code> / <code>moveDown()</code>: Verschiebt <code>this.y</code> um <code>this.speed</code>.</li>
+                        <li><code>offset = { top: 0, left: 0, right: 0, bottom: 0 }</code> in <code>DrawableObject</code></li>
+                        <li><code>speed = 1</code>, <code>moveLeft()</code>, <code>moveRight()</code>, <code>moveUp()</code>, <code>moveDown()</code></li>
+                        <li><code>isColliding(otherObject)</code>: Präzise AABB-Kollisionsprüfung unter Berücksichtigung beider <code>offset</code>-Werte.</li>
                     </ul>
                 </div>
 
                 <div class="card">
                     <div class="card-title">
-                        <strong>Character (Erweitert)</strong>
+                        <strong>Character</strong>
                         <span class="file-path">models/character.class.js</span>
                     </div>
                     <div class="tag-row">
@@ -259,43 +265,42 @@ MoveableObject  ◄──  Enemy
                     <h4>Neue Properties &amp; Methoden</h4>
                     <ul>
                         <li><code>speed = 4</code>, <code>isShooting = false</code>, <code>lastShotTime = 0</code></li>
-                        <li><code>animate()</code>: Schaltet dynamisch zwischen <code>shoot</code>- und <code>idle</code>-Frames um.</li>
-                        <li><code>shoot(onShoot, cooldownMs = 400)</code>: Prüft den Cooldown über <code>Date.now()</code> und ruft <code>triggerShot(onShoot)</code> auf.</li>
-                        <li><code>triggerShot(onShoot)</code>: Setzt <code>isShooting = true</code>, erzeugt <code>new Projectile(this.x + 90, this.y + 35)</code> und setzt den Status nach <code>500</code> ms zurück.</li>
+                        <li><code>animate()</code>: Schaltet zwischen <code>shoot</code>- und <code>idle</code>-Frames um.</li>
+                        <li><code>shoot(onShoot, cooldownMs = 400)</code>: Prüft Cooldown per <code>Date.now()</code>.</li>
+                        <li><code>triggerShot(onShoot)</code>: Erzeugt <code>new Projectile(this.x + 92, this.y + 58)</code> direkt an der Waffenmündung.</li>
                     </ul>
                 </div>
 
                 <div class="card">
                     <div class="card-title">
-                        <strong>World (Erweitert)</strong>
+                        <strong>World</strong>
                         <span class="file-path">models/world.class.js</span>
                     </div>
                     <div class="tag-row">
-                        <span class="tag imports">import: Character, Enemy, IntervalHub</span>
+                        <span class="tag imports">import: Character, Enemy, Effect, ImgHelper, IntervalHub</span>
                     </div>
-                    <h4>Neue Properties &amp; Methoden</h4>
+                    <h4>Properties &amp; Methoden</h4>
                     <ul>
-                        <li><code>enemies</code>, <code>projectiles = []</code>, <code>keyboard</code>, <code>lastSalvoTime = 0</code>, <code>selectedCharacterIndex = 0</code></li>
-                        <li><code>startInputLoop()</code>: Startet 60-FPS-Loop für <code>handleShootingInput()</code> und <code>handleMovementInput()</code>.</li>
-                        <li><code>handleMovementInput()</code>, <code>moveCharactersUp(minRoadY)</code>, <code>moveCharactersDown(maxRoadY)</code>: Bewegt die ausgewählte Katze innerhalb der Straße (<code>135..485</code> px).</li>
-                        <li><code>handleShootingInput()</code>, <code>fireCharacter(characterIndex)</code>, <code>fireAllCharacters()</code>: Steuert Einzelschüsse (400 ms) und <code>Space</code>-Salve (2000 ms).</li>
-                        <li><code>cleanupProjectiles()</code>: Entfernt Projektile außerhalb von <code>canvas.width</code> und ruft <code>projectile.destroy()</code> auf.</li>
+                        <li><code>character</code>, <code>enemies</code>, <code>projectiles = []</code>, <code>effects = []</code>, <code>keyboard</code></li>
+                        <li><code>constructor(canvas, level, keyboard, characterKey = "character1")</code></li>
+                        <li><code>handleMovementInput()</code>, <code>moveCharacterUp(minRoadY)</code>, <code>moveCharacterDown(maxRoadY)</code></li>
+                        <li><code>handleShootingInput()</code>, <code>spawnProjectile(projectile)</code>, <code>checkProjectileHits()</code>, <code>handleHit(projectile, hitEnemy)</code></li>
+                        <li><code>cleanupProjectiles()</code>, <code>cleanupEnemies()</code>, <code>cleanupEffects()</code></li>
                     </ul>
                 </div>
 
                 <div class="card">
                     <div class="card-title">
-                        <strong>ImgHelper (Clean Naming)</strong>
-                        <span class="file-path">js/imghelper.js</span>
+                        <strong>ImgHelper &amp; Repo-Hygiene</strong>
+                        <span class="file-path">js/imghelper.js &amp; .gitignore</span>
                     </div>
                     <div class="tag-row">
                         <span class="tag">Refactoring</span>
                     </div>
-                    <h4>Umbenannte Keys</h4>
+                    <h4>Änderungen</h4>
                     <ul>
-                        <li><code>c1..c15</code> → <code>character1..character15</code></li>
-                        <li><code>reg1..reg8</code> → <code>regular1..regular8</code></li>
-                        <li><code>fx</code> → <code>effects</code></li>
+                        <li><code>c1..c15</code> → <code>character1..character15</code>, <code>reg1..reg8</code> → <code>regular1..regular8</code>, <code>fx</code> → <code>effects</code></li>
+                        <li><code>.gitignore</code> schließt Roh-Design-Ordner (<code>Ai</code>, <code>Eps</code>, <code>Spine</code>, <code>Json Atlas</code>, <code>Preview</code>, <code>__MACOSX</code>) aus GitHub aus.</li>
                     </ul>
                 </div>
 
@@ -305,11 +310,10 @@ MoveableObject  ◄──  Enemy
         <section class="box">
             <h3>3. Wichtigste Lernpunkte &amp; offene Review-Checkpoints</h3>
             <ul>
-                <li><strong>Fußlinie statt Oberkante:</strong> Bei unterschiedlich großen Sprites (<code>Character = 120 px</code> vs. <code>Enemy = 210 px</code>) bestimmt <code>y + height</code>, auf welcher Fahrspur sie stehen.</li>
-                <li><strong>Cooldown gegen Dauerfeuer:</strong> Ein <code>Date.now()</code>-Vergleich verhindert 60 Schüsse pro Sekunde bei gedrückter Taste.</li>
-                <li><strong>Timer-Leaks vermeiden:</strong> Jedes entfernte Projektil muss über <code>destroy()</code> seine <code>IntervalHub</code>-Timer stoppen.</li>
-                <li><strong>Repo-Hygiene (<code>.gitignore</code>):</strong> Roh-Design-Ordner (<code>Ai</code>, <code>Eps</code>, <code>Spine</code>, <code>Json Atlas</code>, <code>Preview</code>, <code>__MACOSX</code>) über <code>.gitignore</code> ausgeschlossen und per <code>git rm -r --cached</code> aus GitHub entfernt, um False-Positive-Secret-Alerts (z. B. in <code>Ui.eps</code>) und unnötige Repo-Größe zu vermeiden.</li>
-                <li><strong>Offen für die nächste Session:</strong> Gegner-Sprites nach links spiegeln (<code>flipImage</code> in <code>World.addToMap</code>), Treffer-/Kollisionsabfrage zwischen Projektilen und Gegnern sowie visueller Rahmen für <code>selectedCharacterIndex</code>.</li>
+                <li><strong>Hitbox-Offsets ausmessen:</strong> Transparente PNG-Ränder (z. B. 55 px links am <code>Enemy</code>) führen ohne <code>offset</code> dazu, dass Schüsse zu früh auslösen.</li>
+                <li><strong>Muzzle Flash vs. Projektil:</strong> <code>ShootFx</code> läuft 1× als <code>Effect</code> vor der Waffenmündung (<code>x + 92, y + 58</code>), während <code>ImgHelper.bullets[0]</code> bis zum Gegner fliegt.</li>
+                <li><strong>Zustandsschutz bei Sterbe-Animation:</strong> <code>!enemy.isDead</code> in <code>checkProjectileHits()</code> verhindert, dass ein sterbender Gegner weitere Kugeln abfängt.</li>
+                <li><strong>Offen für die nächste Session:</strong> Character-Auswahlscreen (Übergabe von <code>characterKey</code>), Gegner-Wellen spawnen und Barrikaden-/Spieler-Schaden.</li>
             </ul>
         </section>
     </article>

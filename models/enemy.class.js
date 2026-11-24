@@ -6,6 +6,17 @@ export class Enemy extends MoveableObject {
     width = 200;
     height = 210;
     enemyKey;
+    movementIntervalId;
+    animationIntervalId;
+    deadIntervalId;
+    isDead = false;
+    isFinished = false;
+    offset = {
+        top: 83,
+        left: 55,
+        right: 67,
+        bottom: 39
+    };
 
     /**
      * @param {string} enemyKey
@@ -14,7 +25,7 @@ export class Enemy extends MoveableObject {
      * @param {number} speed
      */
 
-    constructor(enemyKey = "regular1", offsetX = 1280, offsetY = 265, speed = 1) {
+    constructor(enemyKey = "regular1", offsetX = 1180, offsetY = 265, speed = 1) {
         super();
         const enemySprites = ImgHelper.enemies[enemyKey];
         if (!enemySprites) {
@@ -26,6 +37,7 @@ export class Enemy extends MoveableObject {
         this.speed = speed;
         this.loadImage(enemySprites.walk[0]);
         this.loadImages(enemySprites.walk);
+        this.loadImages(enemySprites.dead);
         this.animate();
     }
 
@@ -38,15 +50,43 @@ export class Enemy extends MoveableObject {
     }
 
     startMovement() {
-        IntervalHub.startInterval(() => {
+        this.movementIntervalId = IntervalHub.startInterval(() => {
             this.moveLeft();
         }, 1000 / 60);
     }
 
     startWalkAnimation() {
         const walkFrames = ImgHelper.enemies[this.enemyKey].walk;
-        IntervalHub.startInterval(() => {
+        this.animationIntervalId = IntervalHub.startInterval(() => {
             this.playAnimation(walkFrames);
         }, 50);
+    }
+
+    die() {
+        if (this.isDead) {
+            return;
+        }
+        this.isDead = true;
+        this.currentImage = 0;
+        this.destroy();
+        this.playDeadAnimation();
+    }
+
+    playDeadAnimation() {
+        const deadFrames = ImgHelper.enemies[this.enemyKey].dead;
+        this.deadIntervalId = IntervalHub.startInterval(() => {
+            if (this.currentImage >= deadFrames.length) {
+                this.isFinished = true;
+                IntervalHub.stopInterval(this.deadIntervalId);
+                return;
+            }
+            this.img = this.imageCache[deadFrames[this.currentImage]];
+            this.currentImage++;
+        }, 25);
+    }
+
+    destroy() {
+        IntervalHub.stopInterval(this.movementIntervalId);
+        IntervalHub.stopInterval(this.animationIntervalId);
     }
 }

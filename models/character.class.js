@@ -54,7 +54,7 @@ export class Character extends MoveableObject {
 
     triggerShot(onShoot) {
         this.isShooting = true;
-        onShoot(new Projectile(this.x + 90, this.y + 35));
+        onShoot(new Projectile(this.x + 92, this.y + 58));
         setTimeout(() => {
             this.isShooting = false;
         }, 500);
