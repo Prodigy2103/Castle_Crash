@@ -68,7 +68,7 @@ function buildCharacterMap() {
     const characters = {};
     for (let charIndex = 1; charIndex <= 15; charIndex++) {
         const base = `${ASSETS_ROOT}/Characters/C${charIndex}`;
-        characters[`c${charIndex}`] = {
+        characters[`character${charIndex}`] = {
             idle: buildFrames(`${base}/Idle/Character${charIndex}-Idle_`, 20),
             shoot: buildFrames(`${base}/Shoot/Character${charIndex}-Shoot_`, 10)
         };
@@ -84,7 +84,7 @@ function buildRegularEnemyMap() {
     const regularEnemies = {};
     for (let enemyIndex = 1; enemyIndex <= 8; enemyIndex++) {
         const base = `${ASSETS_ROOT}/Enemies/Enemy Reg ${enemyIndex}`;
-        regularEnemies[`reg${enemyIndex}`] = {
+        regularEnemies[`regular${enemyIndex}`] = {
             attack: buildFrames(`${base}/Attack/Enemy-Attack_`, 25),
             dead: buildFrames(`${base}/Dead/Enemy-Dead_`, 60),
             idle: buildFrames(`${base}/Idle/Enemy-Idle_`, 20),
@@ -161,7 +161,7 @@ export class ImgHelper {
         ...buildBossEnemyMap()
     };
 
-    static fx = {
+    static effects = {
         explosion: buildFrames(`${ASSETS_ROOT}/Explosion/ExplosionFx-Explossion_`, 20),
         shoot: buildFrames(`${ASSETS_ROOT}/ShootFx/Fx2-animation_`, 15)
     };

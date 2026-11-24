@@ -121,6 +121,198 @@
         <p>Vollständige Übersicht aller erstellten Klassen, Funktionen/Methoden und deren Verbindungen untereinander.</p>
     </header>
 
+    <article class="entry" id="entry-2026-11-24">
+        <div class="entry-header">
+            <h2>2026-11-24 – Gegner, Projektile, Tastatursteuerung &amp; Einzelauswahl</h2>
+            <span class="badge">2026-11-24</span>
+        </div>
+
+        <section>
+            <h3>1. Verbindungen &amp; Datenfluss zwischen den Dateien</h3>
+            <div class="flow">window (keydown / keyup) ──► js/game.js :: updateKeyState(keyboard, event, isPressed)
+  │                              └─ setzt Flags auf Keyboard (SPACE, DIGIT_1..3, UP, DOWN)
+  ▼
+new World(canvas, level, keyboard)                [models/world.class.js]
+  ├── enemies: 3x new Enemy("regular1".."regular3", x, y, speed)
+  │      └── startMovement() ─► moveLeft() | startWalkAnimation() ─► playAnimation()
+  │
+  ├── startInputLoop() (60 FPS via IntervalHub)
+  │      ├── handleMovementInput() ─► moveCharactersUp/Down() ─► character.moveUp() / moveDown()
+  │      └── handleShootingInput()
+  │             ├── Digit1..3 ─► fireCharacter(index) ─► character.shoot(onShoot, 400)
+  │             └── Space     ─► fireAllCharacters()  ─► character.triggerShot(onShoot)
+  │                                                          └─► new Projectile(x + 90, y + 35)
+  └── draw() (requestAnimationFrame)
+         ├── cleanupProjectiles() ─► projectile.destroy() (stoppt Intervalle außerhalb Canvas)
+         └── addObjectsToMap(enemies / projectiles)
+
+Vererbung (extends):
+MoveableObject  ◄──  Enemy
+                ◄──  Projectile</div>
+        </section>
+
+        <section>
+            <h3>2. Heute neu erstellte &amp; geänderte Module im Detail</h3>
+            <div class="cards">
+
+                <div class="card">
+                    <div class="card-title">
+                        <strong>Enemy</strong>
+                        <span class="file-path">models/enemy.class.js</span>
+                    </div>
+                    <div class="tag-row">
+                        <span class="tag extends">extends MoveableObject</span>
+                        <span class="tag imports">import: ImgHelper, IntervalHub</span>
+                    </div>
+                    <h4>Properties</h4>
+                    <ul>
+                        <li><code>width = 200</code>, <code>height = 210</code>, <code>enemyKey</code></li>
+                    </ul>
+                    <h4>Methoden</h4>
+                    <ul>
+                        <li><code>constructor(enemyKey = "regular1", offsetX = 1280, offsetY = 265, speed = 1)</code>: Prüft <code>ImgHelper.enemies[enemyKey]</code>, lädt <code>walk</code>-Frames und startet <code>animate()</code>.</li>
+                        <li><code>animate()</code>: Startet <code>startMovement()</code> und <code>startWalkAnimation()</code>.</li>
+                        <li><code>startMovement()</code>: Bewegt den Gegner alle <code>1000 / 60</code> ms per <code>moveLeft()</code>.</li>
+                        <li><code>startWalkAnimation()</code>: Spielt die <code>walk</code>-Frames alle <code>50</code> ms ab.</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">
+                        <strong>Projectile</strong>
+                        <span class="file-path">models/projectile.class.js</span>
+                    </div>
+                    <div class="tag-row">
+                        <span class="tag extends">extends MoveableObject</span>
+                        <span class="tag imports">import: ImgHelper, IntervalHub</span>
+                    </div>
+                    <h4>Properties</h4>
+                    <ul>
+                        <li><code>width = 80</code>, <code>height = 50</code>, <code>movementIntervalId</code>, <code>animationIntervalId</code></li>
+                    </ul>
+                    <h4>Methoden</h4>
+                    <ul>
+                        <li><code>constructor(offsetX, offsetY, speed = 6)</code>: Lädt <code>ImgHelper.effects.shoot</code>-Frames und startet <code>animate()</code>.</li>
+                        <li><code>animate()</code>: Ruft <code>startMovement()</code> und <code>startEffectAnimation()</code> auf.</li>
+                        <li><code>startMovement()</code>: Bewegt das Projektil alle <code>1000 / 60</code> ms per <code>moveRight()</code>.</li>
+                        <li><code>startEffectAnimation()</code>: Spielt <code>ShootFx</code> alle <code>40</code> ms über <code>playAnimation(...)</code>.</li>
+                        <li><code>destroy()</code>: Stoppt beide gespeicherten Intervalle per <code>IntervalHub.stopInterval(...)</code>.</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">
+                        <strong>Keyboard</strong>
+                        <span class="file-path">models/keyboard.class.js</span>
+                    </div>
+                    <div class="tag-row">
+                        <span class="tag">Eingabe-Zustand</span>
+                    </div>
+                    <h4>Properties</h4>
+                    <ul>
+                        <li><code>SPACE = false</code>, <code>DIGIT_1 = false</code>, <code>DIGIT_2 = false</code>, <code>DIGIT_3 = false</code>, <code>UP = false</code>, <code>DOWN = false</code></li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">
+                        <strong>game.js (Input-Binding)</strong>
+                        <span class="file-path">js/game.js</span>
+                    </div>
+                    <div class="tag-row">
+                        <span class="tag imports">import: Level, World, Keyboard</span>
+                    </div>
+                    <h4>Funktionen &amp; Konstanten</h4>
+                    <ul>
+                        <li><code>KEY_MAP</code>: Mapped <code>event.code</code> (<code>Space</code>, <code>Digit1..3</code>, <code>ArrowUp</code>, <code>ArrowDown</code>) auf <code>Keyboard</code>-Keys.</li>
+                        <li><code>updateKeyState(keyboard, event, isPressed)</code>: Ignoriert unbekannte Tasten, verhindert Browser-Scroll bei <code>Space</code>/Pfeilen und setzt den Zustand.</li>
+                        <li><code>bindKeyboardEvents(keyboard)</code>: Registriert <code>keydown</code> und <code>keyup</code> auf <code>window</code>.</li>
+                        <li><code>initGame()</code>: Erzeugt <code>keyboard</code>, bindet Events und übergibt <code>keyboard</code> an <code>new World(canvas, level, keyboard)</code>.</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">
+                        <strong>MoveableObject (Erweitert)</strong>
+                        <span class="file-path">models/moveable_object.class.js</span>
+                    </div>
+                    <div class="tag-row">
+                        <span class="tag extends">extends DrawableObject</span>
+                    </div>
+                    <h4>Neue Properties &amp; Methoden</h4>
+                    <ul>
+                        <li><code>speed = 1</code></li>
+                        <li><code>moveLeft()</code> / <code>moveRight()</code>: Verschiebt <code>this.x</code> um <code>this.speed</code>.</li>
+                        <li><code>moveUp()</code> / <code>moveDown()</code>: Verschiebt <code>this.y</code> um <code>this.speed</code>.</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">
+                        <strong>Character (Erweitert)</strong>
+                        <span class="file-path">models/character.class.js</span>
+                    </div>
+                    <div class="tag-row">
+                        <span class="tag extends">extends MoveableObject</span>
+                        <span class="tag imports">import: Projectile, ImgHelper, IntervalHub</span>
+                    </div>
+                    <h4>Neue Properties &amp; Methoden</h4>
+                    <ul>
+                        <li><code>speed = 4</code>, <code>isShooting = false</code>, <code>lastShotTime = 0</code></li>
+                        <li><code>animate()</code>: Schaltet dynamisch zwischen <code>shoot</code>- und <code>idle</code>-Frames um.</li>
+                        <li><code>shoot(onShoot, cooldownMs = 400)</code>: Prüft den Cooldown über <code>Date.now()</code> und ruft <code>triggerShot(onShoot)</code> auf.</li>
+                        <li><code>triggerShot(onShoot)</code>: Setzt <code>isShooting = true</code>, erzeugt <code>new Projectile(this.x + 90, this.y + 35)</code> und setzt den Status nach <code>500</code> ms zurück.</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">
+                        <strong>World (Erweitert)</strong>
+                        <span class="file-path">models/world.class.js</span>
+                    </div>
+                    <div class="tag-row">
+                        <span class="tag imports">import: Character, Enemy, IntervalHub</span>
+                    </div>
+                    <h4>Neue Properties &amp; Methoden</h4>
+                    <ul>
+                        <li><code>enemies</code>, <code>projectiles = []</code>, <code>keyboard</code>, <code>lastSalvoTime = 0</code>, <code>selectedCharacterIndex = 0</code></li>
+                        <li><code>startInputLoop()</code>: Startet 60-FPS-Loop für <code>handleShootingInput()</code> und <code>handleMovementInput()</code>.</li>
+                        <li><code>handleMovementInput()</code>, <code>moveCharactersUp(minRoadY)</code>, <code>moveCharactersDown(maxRoadY)</code>: Bewegt die ausgewählte Katze innerhalb der Straße (<code>135..485</code> px).</li>
+                        <li><code>handleShootingInput()</code>, <code>fireCharacter(characterIndex)</code>, <code>fireAllCharacters()</code>: Steuert Einzelschüsse (400 ms) und <code>Space</code>-Salve (2000 ms).</li>
+                        <li><code>cleanupProjectiles()</code>: Entfernt Projektile außerhalb von <code>canvas.width</code> und ruft <code>projectile.destroy()</code> auf.</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">
+                        <strong>ImgHelper (Clean Naming)</strong>
+                        <span class="file-path">js/imghelper.js</span>
+                    </div>
+                    <div class="tag-row">
+                        <span class="tag">Refactoring</span>
+                    </div>
+                    <h4>Umbenannte Keys</h4>
+                    <ul>
+                        <li><code>c1..c15</code> → <code>character1..character15</code></li>
+                        <li><code>reg1..reg8</code> → <code>regular1..regular8</code></li>
+                        <li><code>fx</code> → <code>effects</code></li>
+                    </ul>
+                </div>
+
+            </div>
+        </section>
+
+        <section class="box">
+            <h3>3. Wichtigste Lernpunkte &amp; offene Review-Checkpoints</h3>
+            <ul>
+                <li><strong>Fußlinie statt Oberkante:</strong> Bei unterschiedlich großen Sprites (<code>Character = 120 px</code> vs. <code>Enemy = 210 px</code>) bestimmt <code>y + height</code>, auf welcher Fahrspur sie stehen.</li>
+                <li><strong>Cooldown gegen Dauerfeuer:</strong> Ein <code>Date.now()</code>-Vergleich verhindert 60 Schüsse pro Sekunde bei gedrückter Taste.</li>
+                <li><strong>Timer-Leaks vermeiden:</strong> Jedes entfernte Projektil muss über <code>destroy()</code> seine <code>IntervalHub</code>-Timer stoppen.</li>
+                <li><strong>Offen für die nächste Session:</strong> Gegner-Sprites nach links spiegeln (<code>flipImage</code> in <code>World.addToMap</code>), Treffer-/Kollisionsabfrage zwischen Projektilen und Gegnern sowie visueller Rahmen für <code>selectedCharacterIndex</code>.</li>
+            </ul>
+        </section>
+    </article>
+
     <article class="entry" id="entry-2026-11-23">
         <div class="entry-header">
             <h2>2026-11-23 – Klassen, Funktionen &amp; Modul-Verbindungen</h2>
