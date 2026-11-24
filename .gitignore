@@ -1,0 +1,10 @@
+# Large design source files (not needed at runtime)
+assets/Ai/
+assets/Eps/
+assets/Json Atlas/
+assets/Preview/
+assets/Spine/
+assets/__MACOSX/
+
+# macOS metadata
+**/.DS_Store
