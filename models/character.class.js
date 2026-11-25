@@ -7,6 +7,14 @@ export class Character extends MoveableObject {
     width = 120;
     height = 120;
     speed = 4;
+    maxHealth = 100;
+    health = 100;
+    offset = {
+        top: 20,
+        left: 20,
+        right: 20,
+        bottom: 15
+    }
     x = 120;
     y = 260;
     characterKey;
@@ -58,5 +66,13 @@ export class Character extends MoveableObject {
         setTimeout(() => {
             this.isShooting = false;
         }, 500);
+    }
+
+    /**
+     * Reduces character health without dropping below zero.
+     * @param {number} damage
+     */
+    takeDamage(damage) {
+        this.health = Math.max(0, this.health - damage);
     }
 }

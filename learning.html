@@ -121,6 +121,134 @@
         <p>Vollständige Übersicht aller erstellten Klassen, Funktionen/Methoden und deren Verbindungen untereinander.</p>
     </header>
 
+    <article class="entry" id="entry-2026-11-25">
+        <div class="entry-header">
+            <h2>2026-11-25 – Barrikaden-Schaden, Durchbruch, StatusBar &amp; Game Over</h2>
+            <span class="badge">2026-11-25</span>
+        </div>
+
+        <section>
+            <h3>1. Verbindungen &amp; Datenfluss zwischen den Dateien</h3>
+            <div class="flow">Level.createBackgrounds(areaIndex = 0)  ──► [Area1.png] (ein einzelner Hintergrund bei x = 0)
+
+World :: startInputLoop() (60 FPS)
+  └── handleEnemyAttacks() ──► Enemy.updateAttackState(isWallBroken, barricadeX, character, ...)
+         │
+         ├── [!isWallBroken &amp;&amp; enemy an barricadeX]
+         │      └─ dealPeriodicDamage(onWallDamage, 5) ─► World.damageWall(5)
+         │                                                  └─ bei wallHealth === 0 ─► isWallBroken = true
+         │
+         └── [isWallBroken &amp;&amp; enemy.isColliding(character)]
+                └─ dealPeriodicDamage(onCharacterDamage, 10) ─► World.damageCharacter(10)
+                                                                  ├─► character.takeDamage(10)
+                                                                  ├─► statusBar.setPercentage(character.health)
+                                                                  └─► bei health === 0 ─► triggerGameOver()
+
+World :: draw()
+  ├── drawWallHealthBar() (dynamischer Balken bzw. drawBrokenWallPatch() bei isWallBroken)
+  ├── statusBar.draw(context) (0Bar.png..5Bar.png oben links)
+  └── [isGameOver] ─► drawGameOver() (LosePopUp.png) + Stopp der Render-Schleife</div>
+        </section>
+
+        <section>
+            <h3>2. Heute neu erstellte &amp; geänderte Module im Detail</h3>
+            <div class="cards">
+
+                <div class="card">
+                    <div class="card-title">
+                        <strong>StatusBar</strong>
+                        <span class="file-path">models/status_bar.class.js</span>
+                    </div>
+                    <div class="tag-row">
+                        <span class="tag extends">extends DrawableObject</span>
+                        <span class="tag imports">import: ImgHelper</span>
+                    </div>
+                    <h4>Properties</h4>
+                    <ul>
+                        <li><code>x = 24</code>, <code>y = 20</code>, <code>width = 144</code>, <code>height = 65</code>, <code>barImages</code> (<code>0Bar</code>–<code>5Bar</code> aus <code>ImgHelper.ui</code>)</li>
+                    </ul>
+                    <h4>Methoden</h4>
+                    <ul>
+                        <li><code>constructor()</code>: Lädt alle 6 Balken-Bilder in den Cache und setzt initial <code>100 %</code>.</li>
+                        <li><code>setPercentage(percentage)</code>: Berechnet per <code>Math.ceil(percentage / 20)</code> den passenden Balken-Index (<code>0</code>–<code>5</code>).</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">
+                        <strong>Level (Optimiert)</strong>
+                        <span class="file-path">models/level.class.js</span>
+                    </div>
+                    <div class="tag-row">
+                        <span class="tag imports">import: Background, ImgHelper</span>
+                    </div>
+                    <h4>Methoden</h4>
+                    <ul>
+                        <li><code>static createBackgrounds(areaIndex = 0)</code>: Lädt nur noch das eine Hintergrundbild zum angegebenen <code>areaIndex</code> (mit Error-Guard bei ungültigem Index) und reserviert <code>Area2</code>–<code>Area5</code> für spätere Level.</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">
+                        <strong>Character (Erweitert)</strong>
+                        <span class="file-path">models/character.class.js</span>
+                    </div>
+                    <div class="tag-row">
+                        <span class="tag extends">extends MoveableObject</span>
+                    </div>
+                    <h4>Neue Properties &amp; Methoden</h4>
+                    <ul>
+                        <li><code>maxHealth = 100</code>, <code>health = 100</code>, <code>offset = { top: 20, left: 20, right: 20, bottom: 15 }</code></li>
+                        <li><code>takeDamage(damage)</code>: Reduziert <code>this.health</code> geklammert auf mindestens <code>0</code>.</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">
+                        <strong>Enemy (Erweitert)</strong>
+                        <span class="file-path">models/enemy.class.js</span>
+                    </div>
+                    <div class="tag-row">
+                        <span class="tag extends">extends MoveableObject</span>
+                    </div>
+                    <h4>Neue Properties &amp; Methoden</h4>
+                    <ul>
+                        <li><code>isAttacking = false</code>, <code>lastAttackTime = 0</code> (im <code>constructor</code> zusätzlich <code>enemySprites.attack</code> vorgeladen)</li>
+                        <li><code>startMovement()</code> &amp; <code>startWalkAnimation()</code>: Pausieren Bewegung bei <code>isAttacking || isDead</code> und wechseln auf <code>attack</code>-Frames.</li>
+                        <li><code>updateAttackState(isWallBroken, barricadeX, character, onWallDamage, onCharacterDamage)</code>: Greift erst Barrikade an, nach Durchbruch den <code>Character</code> bei Kollision (setzt sich beim Ausweichen zurück).</li>
+                        <li><code>dealPeriodicDamage(onDamage, damage)</code>: Löst höchstens alle <code>1000 ms</code> Schaden aus.</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">
+                        <strong>World (Erweitert)</strong>
+                        <span class="file-path">models/world.class.js</span>
+                    </div>
+                    <div class="tag-row">
+                        <span class="tag imports">import: StatusBar (+ bestehende)</span>
+                    </div>
+                    <h4>Neue Properties &amp; Methoden</h4>
+                    <ul>
+                        <li><code>maxWallHealth = 100</code>, <code>wallHealth = 100</code>, <code>barricadeX = 415</code>, <code>isWallBroken = false</code>, <code>isGameOver = false</code>, <code>loseScreen</code>, <code>statusBar</code></li>
+                        <li><code>handleEnemyAttacks()</code>, <code>damageWall(damage)</code>, <code>damageCharacter(damage)</code>, <code>triggerGameOver()</code></li>
+                        <li><code>drawWallHealthBar()</code>, <code>drawBrokenWallPatch()</code>, <code>drawGameOver()</code></li>
+                    </ul>
+                </div>
+
+            </div>
+        </section>
+
+        <section class="box">
+            <h3>3. Wichtigste Lernpunkte &amp; offene Review-Checkpoints</h3>
+            <ul>
+                <li><strong>Zustands-Reset beim Ausweichen:</strong> <code>this.isAttacking = isWallBroken &amp;&amp; this.isColliding(character)</code> sorgt dafür, dass Gegner weiterlaufen, wenn die Katze ausweicht.</li>
+                <li><strong><code>undefined</code> in Vergleichen:</strong> Ein fehlender Property-Name (<code>lastAttack</code> statt <code>lastAttackTime</code>) erzeugt <code>NaN</code> im Vergleich und unterdrückt Schaden lautlos.</li>
+                <li><strong>Grafik vs. Canvas-Patch:</strong> Ein rechteckiges <code>drawImage</code>-Patch fällt auf Verläufen/überlappenden Objekten auf – daher wird als sauberer Ersatz später über <code>photopea.com</code> ein echtes <code>Area1_broken.png</code> erstellt.</li>
+            </ul>
+        </section>
+    </article>
+
     <article class="entry" id="entry-2026-11-24">
         <div class="entry-header">
             <h2>2026-11-24 – Gegner, Projektile, Effekte, Hitboxen &amp; Einzel-Charakter</h2>

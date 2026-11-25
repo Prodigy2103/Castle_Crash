@@ -12,19 +12,15 @@ export class Level {
     }
 
     /**
-     * Creates a repeating set of background tiles to cover the level length.
+     * Creates the background for the given area index.
+     * @param {number} areaIndex
      * @returns {Background[]}
      */
-    static createBackgrounds() {
-        const backgrounds = [];
-        const tileCount = 6;
-        const areaImages = ImgHelper.background.areas;
-
-        for (let tileIndex = 0; tileIndex < tileCount; tileIndex++) {
-            const offsetX = tileIndex * 1279;
-            const imagePath = areaImages[tileIndex % areaImages.length];
-            backgrounds.push(new Background(imagePath, offsetX));
+    static createBackgrounds(areaIndex = 0) {
+        const imagePath = ImgHelper.background.areas[areaIndex];
+        if (!imagePath) {
+            throw new Error(`Unknown areaIndex: ${areaIndex}`);
         }
-        return backgrounds;
+        return [new Background(imagePath, 0)];
     }
 }

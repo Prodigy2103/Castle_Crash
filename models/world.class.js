@@ -4,6 +4,7 @@ import { Effect } from "./effects.class.js";
 import { ImgHelper } from "../js/imghelper.js";
 import { IntervalHub } from "../js/intervalhub.class.js";
 import { Background } from "./background.class.js";
+import { StatusBar } from "./status_bar.class.js";
 
 export class World {
     showHitboxes = true;
@@ -15,6 +16,13 @@ export class World {
     context;
     level;
     keyboard;
+    statusBar = new StatusBar();
+    maxWallHealth = 100;
+    wallHealth = 107;
+    barricadeX = 415;
+    isWallBroken = false
+    isGameOver = false;
+    loseScreen = new Image();
 
     /**
      * @param {HTMLCanvasElement} canvas
@@ -30,6 +38,7 @@ export class World {
         this.character = new Character(characterKey, 120, 265);
         this.startInputLoop();
         this.startEnemySpawner();
+        this.loseScreen.src = ImgHelper.ui.LosePopUp
         this.draw();
     }
 
@@ -39,10 +48,16 @@ export class World {
         this.cleanupEnemies();
         this.cleanupEffects();
         this.addObjectsToMap(this.level.backgroundObjects);
+        this.drawWallHealthBar();
         this.addToMap(this.character);
+        this.statusBar.draw(this.context);
         this.addObjectsToMap(this.enemies);
         this.addObjectsToMap(this.projectiles);
         this.addObjectsToMap(this.effects);
+        if (this.isGameOver) {
+            this.drawGameOver();
+            return;
+        }
         requestAnimationFrame(() => this.draw());
     }
 
@@ -70,6 +85,7 @@ export class World {
             this.handleShootingInput();
             this.handleMovementInput();
             this.checkProjectileHits();
+            this.handleEnemyAttacks();
         }, 1000 / 60);
     }
 
@@ -90,6 +106,78 @@ export class World {
         }
         if (this.keyboard.DOWN) {
             this.moveCharacterDown(maxRoadY);
+        }
+    }
+
+    handleEnemyAttacks() {
+        this.enemies.forEach((enemy) => {
+            enemy.updateAttackState(
+                this.isWallBroken,
+                this.barricadeX,
+                this.character,
+                (damage) => this.damageWall(damage),
+                (damage) => this.damageCharacter(damage)
+            );
+        });
+    }
+
+    damageWall(damage) {
+        this.wallHealth = Math.max(0, this.wallHealth - damage);
+        if (this.wallHealth === 0) {
+            this.isWallBroken = true;
+        }
+    }
+
+    damageCharacter(damage) {
+        this.character.takeDamage(damage);
+        this.statusBar.setPercentage(this.character.health);
+        if (this.character.health === 0) {
+            this.triggerGameOver();
+        }
+    }
+
+    triggerGameOver() {
+        this.isGameOver = true;
+        IntervalHub.stopAllIntervals();
+    }
+
+    drawWallHealthBar() {
+        if (this.isWallBroken) {
+            this.drawBrokenWallPatch();
+            return;
+        }
+        const barX = 402;
+        const barY = 178;
+        const barWidth = 10;
+        const barHeight = 226;
+        const healthRatio = this.wallHealth / this.maxWallHealth;
+        const filledHeight = barHeight * healthRatio;
+        this.context.fillStyle = "#1e293b";
+        this.context.fillRect(barX, barY, barWidth, barHeight);
+        this.context.fillStyle = healthRatio > 0.3 ? "#84cc16" : "#ef4444";
+        this.context.fillRect(barX, barY + barHeight - filledHeight, barWidth, filledHeight);
+    }
+
+    /**
+    * Covers the broken barricade with clean asphalt from the background image.
+    */
+    drawBrokenWallPatch() {
+        const background = this.level.backgroundObjects[0];
+        if (!background?.img?.complete) {
+            return;
+        }
+        this.context.drawImage(
+            background.img,
+            1080, 217, 214, 596,
+            309, 131, 128, 359
+        );
+    }
+
+    drawGameOver() {
+        this.context.fillStyle = "rgba(0, 0, 0, 0.55)";
+        this.context.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        if (this.loseScreen.complete) {
+            this.context.drawImage(this.loseScreen, 440, 140, 400, 360);
         }
     }
 
