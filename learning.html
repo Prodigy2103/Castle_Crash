@@ -121,6 +121,113 @@
         <p>Vollständige Übersicht aller erstellten Klassen, Funktionen/Methoden und deren Verbindungen untereinander.</p>
     </header>
 
+    <article class="entry" id="entry-2026-11-28">
+        <div class="entry-header">
+            <h2>2026-11-28 – Startscreen, HUD, Pause, Win/Lose-Overlay &amp; Auswahl</h2>
+            <span class="badge">2026-11-28</span>
+        </div>
+
+        <section>
+            <h3>1. Verbindungen &amp; Datenfluss zwischen den Dateien</h3>
+            <div class="flow">index.html (#startScreen, #hudBar, #pauseOverlay, #endOverlay) + style.css
+  │
+  ▼
+js/game.js :: initMenu() (einmalige Event-Bindung)
+  ├── renderCharacterSelector() ──► wählt selectedCharacterKey ("character1".."character5")
+  ├── renderLevelSelector()     ──► wählt selectedAreaIndex (0..4 → Area1..Area5)
+  ├── bindPauseControls()       ──► IntervalHub.isPaused = true / false + #pauseOverlay
+  └── #startButton / #restartButton ──► startGame()
+                                          ├─► activeWorld?.destroy()
+                                          ├─► Level.createBackgrounds(selectedAreaIndex)
+                                          └─► new World(canvas, level, keyboard, selectedCharacterKey, showEndScreen)
+                                                ├─► handleHit() ─► addEnemyReward() ─► updateHud() / endGame("win")
+                                                ├─► damageWall() ─► switchToBrokenBackground()
+                                                └─► damageCharacter() ─► endGame("lose")
+                                                      └─► showEndScreen(result, coins) ─► #endOverlay (Play Again / Menu)</div>
+        </section>
+
+        <section>
+            <h3>2. Heute geänderte &amp; erweiterte Module im Detail</h3>
+            <div class="cards">
+
+                <div class="card">
+                    <div class="card-title">
+                        <strong>Startscreen, HUD &amp; Overlays</strong>
+                        <span class="file-path">index.html &amp; style.css</span>
+                    </div>
+                    <div class="tag-row">
+                        <span class="tag">UI-Layer (Schritte 1–4)</span>
+                    </div>
+                    <h4>Elemente &amp; Klassen</h4>
+                    <ul>
+                        <li><code>#startScreen</code> (<code>LandingScreen.png</code>, <code>Logo2.png</code>, <code>#characterSelector</code>, <code>#levelSelector</code>, <code>#startButton</code>)</li>
+                        <li><code>#hudBar</code> (<code>CoinBar.png</code> + <code>#coinCount</code>, <code>WaveBar.png</code> + <code>#waveLabel</code>, <code>#pauseButton</code> mit <code>SettingBtn.png</code>)</li>
+                        <li><code>#pauseOverlay</code> (<code>.pause-banner</code> auf <code>BgPaused.png</code>, <code>#resumeButton</code>) &amp; <code>#endOverlay</code> (<code>#endPopupImage</code>, <code>#endCoinsText</code>, <code>#restartButton</code>, <code>#menuButton</code>)</li>
+                        <li>Einheitliche Sans-Serif-<code>font-family</code> im <code>*</code>-Selektor; <code>.hidden</code> am Dateiende.</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">
+                        <strong>game.js (Menü, Auswahl &amp; Neustart)</strong>
+                        <span class="file-path">js/game.js</span>
+                    </div>
+                    <div class="tag-row">
+                        <span class="tag imports">import: Level, World, Keyboard, IntervalHub, ImgHelper</span>
+                    </div>
+                    <h4>Variablen &amp; Funktionen</h4>
+                    <ul>
+                        <li><code>activeWorld</code>, <code>keyboard</code>, <code>selectedCharacterKey = "character1"</code>, <code>selectedAreaIndex = 0</code></li>
+                        <li><code>initMenu()</code> &amp; <code>bindPauseControls()</code>: Registrieren alle Event-Listener einmalig beim Laden.</li>
+                        <li><code>renderCharacterSelector()</code>, <code>createCharacterCard(characterKey)</code>: Zeigen 5 Katzen-Karten.</li>
+                        <li><code>renderLevelSelector()</code>, <code>createLevelButton(areaIndex)</code>: Zeigen Level 1–5 (<code>GreenLevel.png</code>).</li>
+                        <li><code>startGame()</code>, <code>resetHud()</code>, <code>showEndScreen(result, coins)</code>, <code>returnToMenu()</code></li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">
+                        <strong>IntervalHub (Pause-Steuerung)</strong>
+                        <span class="file-path">js/intervalhub.class.js</span>
+                    </div>
+                    <div class="tag-row">
+                        <span class="tag">Timer-Hub</span>
+                    </div>
+                    <h4>Erweiterung</h4>
+                    <ul>
+                        <li><code>static isPaused = false</code>: Pausiert alle über <code>startInterval(func, timer)</code> registrierten Timer zentral, ohne die Interval-IDs zu verlieren.</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">
+                        <strong>World &amp; ImgHelper (Erweitert)</strong>
+                        <span class="file-path">models/world.class.js &amp; js/imghelper.js</span>
+                    </div>
+                    <div class="tag-row">
+                        <span class="tag imports">import: StatusBar (+ bestehende)</span>
+                    </div>
+                    <h4>Neue Properties &amp; Methoden</h4>
+                    <ul>
+                        <li><code>ImgHelper.background.brokenAreas</code>: Bindet <code>Area_Broken/Area1_broken.png.webp</code> ein.</li>
+                        <li><code>coins = 0</code>, <code>defeatedEnemies = 0</code>, <code>wave = 1</code>, <code>maxWaves = 5</code>, <code>enemiesPerWave = 10</code>, <code>onGameEnd</code></li>
+                        <li><code>switchToBrokenBackground()</code>, <code>addEnemyReward()</code>, <code>updateHud()</code>, <code>endGame(result)</code>, <code>destroy()</code></li>
+                    </ul>
+                </div>
+
+            </div>
+        </section>
+
+        <section class="box">
+            <h3>3. Wichtigste Lernpunkte &amp; offene Checkpoints</h3>
+            <ul>
+                <li><strong>CSS-Reihenfolge &amp; Spezifität:</strong> <code>.hidden { display: none; }</code> muss nach <code>.pause-overlay { display: flex; }</code> stehen, sonst überschreibt die spätere Regel das Ausblenden.</li>
+                <li><strong>Pause ohne Timer-Verlust:</strong> Ein zentrales <code>IntervalHub.isPaused</code>-Flag pausiert alle Loops gleichzeitig und ermöglicht nahtloses Fortsetzen.</li>
+                <li><strong>Offen für morgen (Schritt 5 &amp; Feinschliff):</strong> Hilfe- &amp; Audio-Buttons (`BtnHelp`, `BtnSound`, `BtnMusic`), doppelte Alt-Methoden in <code>world.class.js</code> bereinigen und <code>endCoinsTest</code> → <code>endCoinsText</code> in <code>index.html</code> korrigieren.</li>
+            </ul>
+        </section>
+    </article>
+
     <article class="entry" id="entry-2026-11-25">
         <div class="entry-header">
             <h2>2026-11-25 – Barrikaden-Schaden, Durchbruch, StatusBar &amp; Game Over</h2>

@@ -135,6 +135,9 @@ export class ImgHelper {
             `${ASSETS_ROOT}/Area/Area3.png`,
             `${ASSETS_ROOT}/Area/Area4.png`,
             `${ASSETS_ROOT}/Area/Area5.png`
+        ],
+        brokenAreas: [
+            `${ASSETS_ROOT}/Area_Broken/Area1_broken.png`
         ]
     };
 

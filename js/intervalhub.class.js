@@ -1,8 +1,13 @@
 export class IntervalHub {
     static allIntervals = [];
+    static isPaused = false;
 
     static startInterval(func, timer) {
-        const newInterval = setInterval(func, timer);
+        const newInterval = setInterval(() => {
+            if (!IntervalHub.isPaused) {
+                func();
+            }
+        }, timer);
         IntervalHub.allIntervals.push(newInterval);
         return newInterval;
     }

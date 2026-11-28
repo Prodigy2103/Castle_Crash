@@ -18,11 +18,16 @@ export class World {
     keyboard;
     statusBar = new StatusBar();
     maxWallHealth = 100;
-    wallHealth = 107;
+    wallHealth = 100;
     barricadeX = 415;
     isWallBroken = false
     isGameOver = false;
-    loseScreen = new Image();
+    maxWaves = 5;
+    enemiesPerWave = 10;
+    onGameEnd;
+    coins = 0;
+    defeatedEnemies = 0;
+    wave = 1;
 
     /**
      * @param {HTMLCanvasElement} canvas
@@ -30,15 +35,16 @@ export class World {
      * @param {import("./keyboard.class.js").Keyboard} keyboard
      * @param {string} characterKey
      */
-    constructor(canvas, level, keyboard, characterKey = "character1") {
+    constructor(canvas, level, keyboard, characterKey = "character1", onGameEnd = null) {
         this.canvas = canvas;
         this.context = canvas.getContext("2d");
         this.level = level;
         this.keyboard = keyboard;
+        this.onGameEnd = onGameEnd;
         this.character = new Character(characterKey, 120, 265);
         this.startInputLoop();
         this.startEnemySpawner();
-        this.loseScreen.src = ImgHelper.ui.LosePopUp
+        this.level.backgroundObjects[0]?.loadImages(ImgHelper.background.brokenAreas);
         this.draw();
     }
 
@@ -54,8 +60,8 @@ export class World {
         this.addObjectsToMap(this.enemies);
         this.addObjectsToMap(this.projectiles);
         this.addObjectsToMap(this.effects);
+        this.level.backgroundObjects[0]?.loadImages(ImgHelper.background.brokenAreas);
         if (this.isGameOver) {
-            this.drawGameOver();
             return;
         }
         requestAnimationFrame(() => this.draw());
@@ -123,27 +129,22 @@ export class World {
 
     damageWall(damage) {
         this.wallHealth = Math.max(0, this.wallHealth - damage);
-        if (this.wallHealth === 0) {
+        if (this.wallHealth === 0 && !this.isWallBroken) {
             this.isWallBroken = true;
+            this.switchToBrokenBackground();
         }
     }
 
-    damageCharacter(damage) {
-        this.character.takeDamage(damage);
-        this.statusBar.setPercentage(this.character.health);
-        if (this.character.health === 0) {
-            this.triggerGameOver();
+    switchToBrokenBackground() {
+        const background = this.level.backgroundObjects[0];
+        const brokenPath = ImgHelper.background.brokenAreas[0];
+        if (background?.imageCache[brokenPath]) {
+            background.img = background.imageCache[brokenPath];
         }
-    }
-
-    triggerGameOver() {
-        this.isGameOver = true;
-        IntervalHub.stopAllIntervals();
     }
 
     drawWallHealthBar() {
         if (this.isWallBroken) {
-            this.drawBrokenWallPatch();
             return;
         }
         const barX = 402;
@@ -156,29 +157,6 @@ export class World {
         this.context.fillRect(barX, barY, barWidth, barHeight);
         this.context.fillStyle = healthRatio > 0.3 ? "#84cc16" : "#ef4444";
         this.context.fillRect(barX, barY + barHeight - filledHeight, barWidth, filledHeight);
-    }
-
-    /**
-    * Covers the broken barricade with clean asphalt from the background image.
-    */
-    drawBrokenWallPatch() {
-        const background = this.level.backgroundObjects[0];
-        if (!background?.img?.complete) {
-            return;
-        }
-        this.context.drawImage(
-            background.img,
-            1080, 217, 214, 596,
-            309, 131, 128, 359
-        );
-    }
-
-    drawGameOver() {
-        this.context.fillStyle = "rgba(0, 0, 0, 0.55)";
-        this.context.fillRect(0, 0, this.canvas.width, this.canvas.height);
-        if (this.loseScreen.complete) {
-            this.context.drawImage(this.loseScreen, 440, 140, 400, 360);
-        }
     }
 
     moveCharacterUp(minRoadY) {
@@ -214,6 +192,7 @@ export class World {
         projectile.isHit = true;
         projectile.destroy();
         hitEnemy.die();
+        this.addEnemyReward();
         this.effects.push(
             new Effect(ImgHelper.effects.explosion, hitEnemy.x + 35, hitEnemy.y + 70, 120, 120)
         );
@@ -235,6 +214,52 @@ export class World {
         this.enemies.push(
             new Enemy(enemyKey, this.canvas.width, randomY, randomSpeed)
         );
+    }
+
+    addEnemyReward() {
+        this.coins += 10;
+        this.defeatedEnemies++;
+        this.wave = Math.min(
+            this.maxWaves,
+            Math.floor(this.defeatedEnemies / this.enemiesPerWave) + 1
+        );
+        this.updateHud();
+        if (this.defeatedEnemies >= this.maxWaves * this.enemiesPerWave) {
+            this.endGame("win");
+        }
+    }
+
+    damageCharacter(damage) {
+        this.character.takeDamage(damage);
+        this.statusBar.setPercentage(this.character.health);
+        if (this.character.health === 0) {
+            this.endGame("lose");
+        }
+    }
+
+    endGame(result) {
+        if (this.isGameOver) {
+            return;
+        }
+        this.isGameOver = true;
+        IntervalHub.stopAllIntervals();
+        this.onGameEnd?.(result, this.coins);
+    }
+
+    destroy() {
+        this.isGameOver = true;
+        IntervalHub.stopAllIntervals();
+    }
+
+    updateHud() {
+        const coinElement = document.getElementById("coinCount");
+        const waveElement = document.getElementById("waveLabel");
+        if (coinElement) {
+            coinElement.textContent = String(this.coins);
+        }
+        if (waveElement) {
+            waveElement.textContent = `Wave ${this.wave}`;
+        }
     }
 
     cleanupEnemies() {

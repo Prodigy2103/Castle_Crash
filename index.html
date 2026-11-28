@@ -13,6 +13,33 @@
 
     <div id="wrapper">
         <canvas id="canvas" width="1280" height="640"></canvas>
+        <div id="startScreen" class="start-screen">
+            <img src="./assets/Png/Ui/Logo2.png" alt="Castel Crash Logo" class="start-logo">
+            <div id="characterSelector" class="selector-row"></div>
+            <div id="levelSelector" class="selector-row"></div>
+            <button id="startButton" class="start-button" type="button">Start Game</button>
+        </div>
+        <div id="hudBar" class="hud-bar hidden">
+            <div class="hud-pill coin-bar">
+                <span id="coinCount">0</span>
+            </div>
+            <div class="hud-pill wave-bar">
+                <span id="waveLabel">Wave 1</span>
+            </div>
+            <button id="pauseButton" class="pause-button" type="button" aria-label="Pause Game"></button>
+        </div>
+        <div id="pauseOverlay" class="pause-overlay hidden">
+            <div class="pause-banner">PAUSED</div>
+            <button id="resumeButton" class="start-button" type="button">Resume</button>
+        </div>
+        <div id="endOverlay" class="pause-overlay hidden">
+            <img id="endPopupImage" src="./assets/Png/Ui/WinPopUp.png" alt="Game Result" class="end-popup">
+            <p id="endCoinsTest" class="end-coins">Coins: 0</p>
+            <div class="end-actions">
+                <button id="restartButton" class="orange-button" type="button">Play Again</button>
+                <button id="menuButton" class="start-button" type="button">Menu</button>
+            </div>
+        </div>
     </div>
 
 </body>
